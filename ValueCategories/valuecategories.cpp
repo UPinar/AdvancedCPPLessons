@@ -653,9 +653,9 @@
 */
 
 /*
-  -----------------------------------
-  | universal(forwarding) reference |
-  -----------------------------------
+              -----------------------------------
+              | universal(forwarding) reference |
+              -----------------------------------
 */
 
 /*
@@ -735,8 +735,9 @@
 */
 
 /*
-  1. template parameters
-  2. type alias declarations
+  1. template parameters forwarding reference
+  2. auto&&
+  2. type alias declarations(using)
   3. decltype specifier
 */
 
@@ -879,7 +880,6 @@
   }
 */
 
-
 /*
   #include <string>
   #include <vector>
@@ -1014,9 +1014,9 @@
 */
 
 /*
-                  ---------------------------------------
-                  | special member functions - reminder |
-                  ---------------------------------------
+                ---------------------------------------
+                | special member functions (REMINDER) |
+                ---------------------------------------
 */
 
 /*
@@ -1026,6 +1026,8 @@
     - user declared deleted
     - user declared defaulted
   implicitly declared
+    - implicitly declared defaulted
+    - implicitly declared deleted
 */
 
 /*
@@ -1149,5 +1151,483 @@
 */
 
 /*
+  // there is no necessity to default a special member function in
+  // public section of class
+
+  class Myclass{
+  public:
+
+  protected:
+    Myclass(const Myclass&) = default;
+  };
 */
-// Lesson 2 - 02:04:55
+
+/*
+  class Myclass{
+  public:
+    Myclass& operator=(const Myclass&)& = default;
+    // compiler will generate copy assignment operator
+    // with a reference qualifier.
+
+    Myclass& operator=(Myclass&&)noexcept = default;
+    // compiler will generate move assignment operator
+    // with a noexcept specifier.
+  };
+*/
+
+/*
+  // myclass.h
+  // ----------
+  class Myclass{
+  public:
+    ~Myclass(); // user declared destructor
+  };
+
+
+  // myclass.cpp
+  // ----------
+  Myclass::~Myclass() = default;  // VALID
+
+  // PIMPLE idioms implementation with unique_ptr 
+  // complete type - incomplete type
+*/
+
+/*
+  - compiler will write the code of special member functions
+    which are user declared defaulted or implicitly declared defaulted.
+    if there will be any situation that will create syntax error
+    when the compiler is writing that function's code, it will
+    implicitly delete that special member function.
+
+    -> a call to some classes private constructor 
+    -> a call to base classes private member function
+    -> if a member class does not have a default constructor but 
+      it is needed to default construct.
+*/
+
+/*
+  class Myclass{
+  public:
+    // default constructor that compiler will generate is
+    // default initialize non-static data members the class.
+
+    // const variables can not be default initialized.
+  private:
+    const int mx;
+  };
+
+  int main(){
+    Myclass m;  // syntax error
+    // error: use of deleted function 'Myclass::Myclass()'
+    // error: uninitialized const member in 'class Myclass'
+  }
+*/
+
+/*
+  class Myclass{
+  public:
+
+  private:
+    int& mx;
+  };
+
+  int main(){
+    Myclass m;  // syntax error
+    // error: use of deleted function 'Myclass::Myclass()'
+    // error: uninitialized reference member in 'class Myclass'
+  }
+*/
+
+/*
+  class Member{
+  public:
+    Member(int);
+  };
+
+  class Myclass{
+  private:
+    Member mx;
+  };
+
+  int main(){
+    Myclass m;  // syntax error
+    // error: use of deleted function 'Myclass::Myclass()'
+    // error: no matching function for call to 'Member::Member()'
+
+    // Myclass's default constructor is implicitly declared defaulted
+    // compiler generated default constructor will default initialize
+    // Member data member, but Member class does not have default constructor
+    // this will cause syntax error and compiler will 
+    // implicitly delete Myclass's default constructor
+  }
+*/
+
+/*
+  class Member{
+  protected:
+    Member();
+  };
+
+  class Myclass{
+  private:
+    Member mx;
+  };
+
+  int main(){
+    Myclass m;  // syntax error
+    // error: use of deleted function 'Myclass::Myclass()'
+    // error: 'Member::Member()' is protected within this context
+
+    // Myclass's default constructor is implicitly declared defaulted
+    // compiler generated default constructor will default initialize
+    // Member data member, but Member's default constructor is protected
+    // this will cause syntax error and compiler will 
+    // implicitly delete Myclass's default constructor
+  }
+*/
+
+/*
+  class Base{
+  public:
+    Base(int);
+  };
+
+  class Myclass : public Base{};
+
+  int main(){
+    Myclass m;  // syntax error
+    // error: use of deleted function 'Myclass::Myclass()'
+    // error: no matching function for call to 'Base::Base()'
+
+    // Myclass's default constructor is implicitly declared defaulted
+    // compiler generated default constructor need to call 
+    // Base class's default constructor because it has a Base class
+    // object inside of it, but Base class does not have a default constructor
+    // this will cause syntax error and compiler will
+    // implicitly delete Myclass's default constructor
+  }
+*/
+
+/*
+  #include <type_traits>  // std::is_nothrow_default_constructible_v
+  #include <utility>      // std::declval
+
+  class Class1{};
+  class Class2{};
+
+  class Myclass{
+  private:
+    Class1 mx;
+    Class2 my;
+  };
+
+  int main(){
+    // Question : Does Myclass's default constructor 
+    //            have noexcept specifier?
+
+    constexpr auto b = std::is_nothrow_default_constructible_v<Myclass>;  
+    std::cout << std::boolalpha << b << '\n'; // output -> true
+
+    constexpr bool x = noexcept(std::declval<Myclass>());
+    std::cout << std::boolalpha << x << '\n'; // output -> true
+  }
+*/
+
+/*
+  #include <type_traits>  // std::is_nothrow_default_constructible_v
+
+  class Class1{
+  public:
+    Class1(); // user declared default constructor
+    // not giving noexcept guarantee
+  };
+  class Class2{};
+
+  class Myclass{
+  private:
+    Class1 mx;
+    Class2 my;
+  };
+
+  int main(){
+    // Question : Does Myclass's default constructor 
+    //            have noexcept specifier?
+
+    constexpr auto b = std::is_nothrow_default_constructible_v<Myclass>;  
+    std::cout << std::boolalpha << b << '\n'; // output -> false
+
+    // because of Class1's default constructor does not 
+    // have noexcept specifier compiler can not give nothrow 
+    // guarantee to Myclass's default constructor
+    // because if Class1's default constructor can throw an exception
+    // Myclass's default constructor can also throw an exception
+  }
+*/
+
+/*
+  #include <type_traits>  // std::is_nothrow_default_constructible_v
+
+  class Class1{
+  public:
+    Class1(); 
+  };
+  class Class2{};
+
+  class Myclass{
+  public:
+    Myclass()noexcept = default; // implicitly declared defaulted
+  private:
+    Class1 mx;
+    Class2 my;
+  };
+
+  int main(){
+    constexpr auto b = std::is_nothrow_default_constructible_v<Myclass>;  
+    std::cout << std::boolalpha << b << '\n'; // output -> true
+  }
+*/
+
+/*
+  #include <string>
+
+  class Myclass{
+
+  private:
+    int mx{};
+    std::string mname{ "noname yet" };
+    // in-class initializer, default member initializer
+  };
+
+  // if we did not initialize mx and mname members in our constructor
+  // compiler will initialize them with the values inside 
+  // default member initiazers
+
+  // when default ctor is implicitly declared defaulted, ctor 
+  // will default initiazlize data members of the class
+  // but if we use in-class initializer(default member initializer)
+  // compiler will use those values to initialize data members 
+*/
+
+/*
+  #include <string>
+
+  class Myclass{
+  public:
+    void print()const{
+      std::cout << "mx : " << mx << " mname : (" << mname << ")\n";
+    }
+  private:
+    int mx;
+    std::string mname;
+  };
+
+  int main(){
+    Myclass m;  // default initialization
+    m.print();  // undefined behaviour(UB)
+    // mx -> indeterminate value, mname -> ""
+
+    // when m object(Myclass type) is default initialized
+    // its class type data member's(std::string) default ctor
+    // will be called
+  }
+*/
+
+/*
+  #include <string>
+
+  class Myclass{
+  public:
+    void print()const{
+      std::cout << "mx : " << mx << " mname : (" << mname << ")\n";
+    }
+  private:
+    int mx;
+    std::string mname;
+  };
+
+  int main(){
+    Myclass m{};  // value initialization -> first step zero initialization
+    m.print();    // output -> mx : 0 mname : ()
+    // mx -> 0, mname -> ""
+  }
+*/
+
+/*
+  #include <string>
+
+  class Myclass{
+  public:
+    void print()const{
+      std::cout << "mx : " << mx << " mname : (" << mname << ")\n";
+    }
+  private:
+    int mx{ 34 };
+    std::string mname{ "Istanbul" };
+  };
+
+  int main(){
+    Myclass m;  // default initialization
+    m.print();  // output -> mx : 34 mname : (Istanbul)
+  }
+*/
+
+/*
+  #include <string>
+
+  class Myclass{
+  public:
+    Myclass() = default;  // user declared defaulted
+    void print()const{
+      std::cout << "mx : " << mx << " mname : (" << mname << ")\n";
+    }
+  private:
+    int mx{ 34 };
+    std::string mname{ "Istanbul" };
+  };
+
+  int main(){
+    Myclass m;  // default initialization
+    m.print();  // output -> mx : 34 mname : (Istanbul)
+  }
+*/
+
+/*
+  #include <string>
+
+  class Myclass{
+  public:
+    Myclass() {}  // user declared defined
+    void print()const{
+      std::cout << "mx : " << mx << " mname : (" << mname << ")\n";
+    }
+  private:
+    int mx{ 34 };
+    std::string mname{ "Istanbul" };
+  };
+
+  int main(){
+    Myclass m;  // default initialization
+    m.print();  // output -> mx : 34 mname : (Istanbul)
+
+
+    // when Myclass's default constructor is user declared defined
+    // Myclass() {} will act like
+    // Myclass() : mx{ 34 }, mname{ "Istanbul" } {}
+  }
+*/
+
+/*
+  #include <string>
+
+  class Myclass{
+  public:
+    Myclass() : mx(98) {}  // user declared defined
+    void print()const{
+      std::cout << "mx : " << mx << " mname : (" << mname << ")\n";
+    }
+  private:
+    int mx{ 34 };
+    std::string mname{ "Istanbul" };
+  };
+
+  int main(){
+    Myclass m;  // default initialization
+    m.print();  // output -> mx : 98 mname : (Istanbul)
+
+    // when Myclass's default constructor is user declared defined
+    // Myclass() : mx(98) {} will act like
+    // Myclass() : mx{ 98 }, mname{ "Istanbul" } {}
+  }
+*/
+
+/*
+          ------------------------------------------------------
+          | noexcept specifier |  noexcept operator (REMINDER) |
+          ------------------------------------------------------
+*/
+
+/*
+  #include <type_traits>  // std::is_nothrow_copy_constructible_v
+
+  void func(int x)noexcept;
+  // func function is giving nothrow guarantee
+
+  void func(int x)noexcept(true);
+  // func function is giving nothrow guarantee
+
+  void func(int x)noexcept(sizeof(int) < 8);
+  // func function is giving nothrow guarantee 
+  // when sizeof(int) < 8 in the system
+
+  template <typename T>
+  void func(T x)noexcept(std::is_nothrow_copy_constructible_v<T>);
+  // if T type's copy constructor is giving nothrow guarantee
+  // func function also is giving nothrow guarantee
+*/
+
+/*
+  int main(){
+    using namespace std;
+
+    // noexcept is compile time operator 
+    // (unevaluated context -> no operation code will be generated)
+
+    constexpr auto b = noexcept(cout << 1);     // b is false
+    // "cout << 1" is an expression 
+
+    constexpr auto b2 = noexcept(10 + 20);      // b2 is true
+    // integer addition is nothrow guarantee, so b2 is true
+  }
+*/
+
+/*
+  template <typename T>
+  void func(T x)noexcept(noexcept(x + x));
+
+  //  void func(T x)noexcept(noexcept(x + x));
+  // if x + x expression has nothrow guarantee
+  //  void func(T x)noexcept(true);
+  //  void func(T x)noexcept;
+  // Those 2 lines are equivalent
+
+  //  void func(T x)noexcept(noexcept(x + x));
+  // if x + x expression DOES NOT HAVE nothrow guarantee
+  //  void func(T x)noexcept(false);
+  //  void func(T x);
+  // Those 2 lines are equivalent
+*/
+
+/*
+  #include <string>
+
+  template <typename T>
+  void func(T x)noexcept(noexcept(x + x));
+
+  struct Myclass{
+  public:
+    Myclass operator+(const Myclass&);  
+    // member operator+() function
+    // better declare it as global, but for this examples sake
+  };
+
+  struct Myclass2{
+  public:
+    Myclass2 operator+(const Myclass2&)noexcept;  
+  };
+
+  int main(){
+    constexpr bool b = noexcept(func(10));  // b is true
+    // integer addition is nothrow guarantee
+
+    std::string s;
+    constexpr bool b2 = noexcept(func(s));  // b2 is false
+    // std::string classes operator+() function 
+    // does not giving nothrow guarantee
+
+    Myclass m;
+    constexpr bool b3 = noexcept(func(m));  // b3 is false
+
+    Myclass2 m2;
+    constexpr bool b4 = noexcept(func(m2));  // b4 is true
+  }
+*/
