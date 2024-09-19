@@ -583,7 +583,7 @@
                         -------------
                         | std::move | 
                         -------------
-  an alternative to std::copy algorithm <algorithm> header
+    an alternative to std::copy algorithm <algorithm> header
 */
 
 /*
@@ -613,15 +613,15 @@
                         -------------
                         | std::move | 
                         -------------
-  value category conversion function <utility> header
+      value category conversion function <utility> header
 */
 
 /*
-  - if L Value comes to std::move function
-      it will be converted to R value
+  - if L Value expression comes to std::move function
+      it will be converted to R value expression
   
-  - if R Value comes to std::move function
-      it will stay as R value
+  - if R Value expression comes to std::move function
+      it will stay as R value expression
 
   static_cast<T&&>(exp);
   std::move(exp);
@@ -651,3 +651,503 @@
   }
   // Move function have forwarding(universal) reference parameter
 */
+
+/*
+  -----------------------------------
+  | universal(forwarding) reference |
+  -----------------------------------
+*/
+
+/*
+   
+
+  template <typename T>
+  void func(T&& r); // universal(forwarding) reference
+
+  template <typename T>
+  void func(const T&& r); // NOT universal reference
+
+  template <typename T>
+  class Myclass{
+  public:
+    void foo(T&&); // NOT universal reference
+  };
+
+  template <typename T>
+  class Myclass{
+  public:
+    template <typename U> // member template
+    void foo(U&&); // universal reference
+  };
+
+  template <typename T>
+  class Myclass{
+  public:
+    template <typename ...Args>
+    void emplace_back(Args&&... args); // universal reference
+    // will be used for perfect forwarding
+    // std::vector classes emplace functions
+  };
+*/
+
+/*
+  #include <vector>
+
+  template <typename T>
+  void func(std::vector<T>&&);  // NOT universal reference  
+*/
+
+/*
+  template <typename T>
+  class Myclass{
+  public:
+    struct  Mystruct{
+    }
+  };
+
+  template <typename T>
+  void func(Myclass<T>::Mystruct&&);  // NOT universal reference
+*/
+
+/*
+  int main(){
+    auto&& x = 10;  // universal reference
+
+    for(auto&& x : container){
+      // universal reference
+    }
+  }
+*/
+
+/*
+                      ------------------------
+                      | reference collapsing |
+                      ------------------------
+*/
+
+/*
+      ----------------
+      |   T&    &    |  -> T&
+      |   T&    &&   |  -> T&
+      |   T&&   &    |  -> T&
+      |   T&&   &&   |  -> T&&
+      ----------------
+*/
+
+/*
+  1. template parameters
+  2. type alias declarations
+  3. decltype specifier
+*/
+
+/*
+  template <typename T>
+  void func(T&&){
+  }
+*/
+
+/*
+  class Myclass{};
+
+  using LREF = Myclass&;
+  using RREF = Myclass&&;
+
+  int main(){
+    LREF& r1 = Myclass{};  // syntax error 
+    // reference collapsing rule & & -> & 
+    // LValue reference can not bind to RValue expression
+
+    // error: cannot bind non-const lvalue reference of type 'Myclass&' 
+    // to an rvalue of type 'Myclass'
+
+    Myclass m;
+    RREF&&  r6 = m;           // syntax error
+    // cannot bind rvalue reference of type 'RREF' {aka 'Myclass&&'} 
+    // to lvalue of type  Myclass'
+
+    LREF&   r2 = m;           // VALID    &   &   -> &
+    LREF&&  r3 = m;           // VALID    &   &&  -> & 
+    RREF&   r4 = m;           // VALID    &&  &   -> &
+    RREF&&  r5 = Myclass{};   // VALID    &&  &&  -> && 
+  }
+*/
+
+/*
+  int main(){
+    int x{ 234 };
+    int* ptr = &x;
+
+    decltype(*ptr)& r = x;
+    // *ptr -> LValue expression 
+    // decltype(LValue expression) -> LValue reference
+    // int& & -> reference collapsing -> &  &  -> &
+    // r is LValue reference
+  }
+*/
+
+/*
+  int&& foo();
+
+  int main(){
+    decltype(foo())&& x = 10;
+    // foo() -> XValue expression
+    // decltype(XValue expression) -> RValue reference
+    // int&& && -> reference collapsing -> &&  && -> &&
+    // x is RValue reference
+  }
+*/
+
+/*
+  #include <string>
+
+  std::string foo();
+
+  int main(){
+    std::string str{"hello world"};
+    auto& r = str;
+    std::string&& r2 = foo(); // life extension
+
+    // "str", "r" and "r2" expression's value category is LValue expression
+  }
+*/
+
+/*
+  #include <utility>
+  #include <string>
+
+  // to use it for move operation
+  void func(std::string&& s){
+
+    auto str1 = s; 
+    // "s(identifier)" expression's value category is LValue expression
+    // for str1 std::string's copy constructor will be called
+
+    auto str2 = std::move(s);
+    // "std::move(s)" is RValue expression
+    // for str2,  std::string's move constructor will be called
+  }
+
+  // to use it for copy operation
+  void func(const std::string&){}
+*/
+
+/*
+  #include <array>
+  #include <vector>
+
+  class Myclass{
+  private:
+    std::array<int, 500> mx;
+  };
+  // Myclass does not have a member that stored in heap memory 
+
+  // Myclass class to have a move constructor, 
+  // does not create an advantage for move operation, 
+  // move operation will become a copy operation
+
+
+  class Myclass2{
+  private:
+    std::vector<int> mx;
+  };
+  // Myclass2 class has a member that stored in heap memory(std::vector)
+
+  // Myclass2 class to have a move constructor, 
+  // does create an advantage for move operation
+*/
+
+/*
+  #include <string>
+
+  compilers does small string optimization 
+  when string is small it will be stored in stack memory
+  so move operation will not be useful (won't create advantage)
+*/
+
+/*
+  // Best scenario is copy elision
+
+  #include <string>
+
+  int main(){
+    std::string{"hello world"}; 
+    // std::string{"hello world"} is PRValue expression
+
+    auto str = std::string{"hello world"};
+    // temporary materialization happens 
+    // std::string{"hello world"} expression becomes XValue expression
+  }
+*/
+
+
+/*
+  #include <string>
+  #include <vector>
+  #include <utility>  // std::move
+
+  int main(){
+    using namespace std;
+
+    string str(100'000, 'A'); 
+    // NO SBO-SSO(small buffer(string) optimization)
+
+
+    // SCENARIO : we will not be use str anymore so better move 
+    // ---------------------------------------------------------
+
+    vector<string> svec;
+    svec.push_back(str); 
+    // becuase of "str(identifier)" is LValue expression
+    // vector's copy constructor will be called
+
+    svec.push_back(move(str));
+    // "move(str)" expression is RValue expression
+    // vector's move constructor will be called
+
+    // ---------------------------------------------------------
+    // after move operation str object will be in moved-from state
+  }
+*/
+
+/*
+  #include <fstream>
+  #include <vector>
+  #include <string>
+  #include <utility>  // std::move
+
+  int main(){
+
+    std::ifstream ifs{"deneme.txt"};
+
+    if (!ifs){
+      std::cerr << "file could not be opened\n";
+      return 1;
+    }
+
+    std::vector<std::string> svec;
+
+    std::string sline;
+    while (getline(ifs, sline)){
+      svec.push_back(move(sline));
+    }
+    // using moved-from state object(sline) again and again
+  }
+*/
+
+/*
+  - moved-from state does not guaranteed to be as same as default 
+  initialized object state.
+  - but for containers in standart library moved-from state is
+  is generally same as default initialized object state.
+  (not technically guaranteed)
+*/
+
+/*
+  #include <string>
+  #include <utility>  // std::move
+
+  int main(){
+
+    using namespace std;
+
+    string str(100'000, 'A'); // fill constructor
+    cout << "str.size() : " << str.size() << '\n';
+    // output -> str.size() : 100000
+
+    auto s = move(str);
+    cout << "str.size() : " << str.size() << '\n';
+    // output -> str.size() : 0
+  }
+*/
+
+/*
+  #include <type_traits>
+
+  // remove_reference -> type transformation metafunction
+
+  // primary template
+  template <typename T>
+  struct RemoveReference{
+    using type = T;
+  };
+
+  // partial specialization for LValue reference types
+  template <typename T>
+  struct RemoveReference<T&>{
+    using type = T;
+  };
+
+  // partial specialization for RValue reference types
+  template <typename T>
+  struct RemoveReference<T&&>{
+    using type = T;
+  };
+
+  // alias template for RemoveReference
+  template <typename T>
+  using RemoveReference_t = typename RemoveReference<T>::type; 
+  // (before C++20)
+
+  // template <typename T>
+  // using RemoveReference_t = RemoveReference<T>::type;       
+  // (after C++20)
+
+  int main(){
+    RemoveReference<int>::type x{};        // int
+    RemoveReference<int&>::type y{};       // int
+    RemoveReference<int&&>::type z{};      // int
+  }
+*/
+
+/*
+  #include <type_traits>
+
+  template <typename T>
+  std::remove_reference_t<T>&& Move(T&& t)
+  {
+    return static_cast<std::remove_reference_t<T>&&>(t);
+  }
+
+  // std::remove_reference_t<T>&&
+  // return value type must be RValue reference
+  // function's parameter is universal reference
+*/
+
+/*
+                  ---------------------------------------
+                  | special member functions - reminder |
+                  ---------------------------------------
+*/
+
+/*
+  - not declared (fonksiyonun olmaması)
+  - user declared 
+    - user declared to be defined
+    - user declared deleted
+    - user declared defaulted
+  implicitly declared
+*/
+
+/*
+  struct Myclass{
+    // default constructor : implicitly declared defaulted
+  };
+
+  // if we did not declare any special member functions
+  // compiler will declare them implicitly
+*/
+
+/*
+  struct Myclass{
+    Myclass(int);
+    // default constructor : not declared
+  };
+  // if we declare a constructor other than default constructor
+  // default constructor will become not declared
+*/
+
+/*
+  struct Myclass{
+    Myclass();
+    Myclass(const Myclass&);
+    // move constructor : not declared
+    // move assignment  : not declared
+  };
+  // if we declare one of copy members(copy constructor or copy assignment)
+  // or a destructor, 
+  // move members(move constructor or move assignment) become not declared
+*/
+
+/*
+  struct Myclass{
+    Myclass();            // user declared to be defined
+    Myclass() = default;  // user declared defaulted
+    Myclass() = delete;   // user declared deleted  
+  };
+*/
+
+/*
+  struct Myclass{
+    Myclass(const Myclass&) = delete;
+    Myclass& operator=(const Myclass&) = delete;
+
+    // copy constructor : user declared deleted
+    // copy assignment  : user declared deleted
+  };
+  // because of copy members are user declared 
+  // move members are not declared
+  // so Myclass is non copyable and non movable
+*/
+
+/*
+  struct Myclass1{
+    Myclass1(const Myclass1&) = delete;
+    Myclass1& operator=(const Myclass1&) = delete;
+    Myclass1(Myclass1&&);
+    Myclass1& operator=(Myclass1&&);
+  };
+
+  struct Myclass2{
+    Myclass2(Myclass2&&);
+    Myclass2& operator=(Myclass2&&);
+  };
+  // when one of move members is user declared
+  // copy members will be deleted implicitly
+
+  // so there is no difference between Myclass1 and Myclass2
+  // but better using Myclass1 in move only types for readability
+*/
+
+/*
+  - deleted function is exists but when it has been called it will be 
+  syntax error.
+  
+  - deleted function is in function overload set but not declared 
+  function is not in function overload set.
+*/
+
+/*
+  void func(int)  = delete;
+  void func(double);
+  void func(float);
+  void func(long);
+
+  // in func function's overload set, there are 4 functions.
+
+  int main(){
+    func('A');  // char -> int (integral promotion) 
+    // func(int) is deleted -> syntax error 
+    // error: use of deleted function 'void func(int)'
+
+    func(23u);  
+    // all functions in overload set are viable -> syntax error
+    // error: call of overloaded 'func(unsigned int)' is ambiguous
+  }
+*/
+
+/*
+  Question : In which scenarios we should delete move members ?
+  Answer   : Never delete move members !!!
+
+  - if move members are not declared, it will fallback to copy members 
+  - if move members are deleted, copy members can not be called!
+*/
+
+/*
+  #include <string> 
+
+  class Myclass{
+  public:
+    Myclass() = default; // implicitly declared defaulted 
+
+    // compiler will generate default constructor, 
+    // will user default member initializers
+  private:
+    int mx{};
+    std::string str{};
+  };
+*/
+
+/*
+*/
+// Lesson 2 - 02:04:55
