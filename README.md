@@ -11,5 +11,8 @@
 ### [Copy Elision](https://github.com/UPinar/AdvanceCPPLessons/tree/main/CopyElision)
   - Unmaterialize object passing [Mandatory Copy Elision]
   - (Unnamed) Return Value Optimization (RVO) [Mandatory Copy Elision]
-  - Materialization Scenarios
   - Named Return Value Optimization (NRVO) [Optimization]
+  - No NRVO Scenarios
+
+### [Move Semantics](https://github.com/UPinar/AdvanceCPPLessons/tree/main/MoveSemantics)
+  - 
