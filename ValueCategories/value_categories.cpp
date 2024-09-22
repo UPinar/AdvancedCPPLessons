@@ -1631,3 +1631,104 @@
     constexpr bool b4 = noexcept(func(m2));  // b4 is true
   }
 */
+
+/*
+  // <-------------------- REMINDER --------------------> 
+
+  int foo(int);
+
+  int main(){
+    int x = 10;
+    // "int x = 10;" there is no expression in here it is a statement
+    // we can not talk about value category of a statement
+    // value category is a property of expressions
+    // we can talk about declaration type of "x" identifier
+
+    int b = 0;
+
+    foo(x);  
+    // "foo(x)" is an expression 
+    // "foo(x) expression's data type is function's return type -> int
+    // "x" is sub expression (alt ifade) of "foo(x)" expression
+    // "x" expression's data type is int
+    // "x" expression's value category is LValue expression
+
+
+    b = x;
+    // "b = x" is an expression
+    // "b" and "x" are sub expressions of "b = x" expression
+    // "x" value category is LValue expression
+    // "x"'s data type is int
+
+    b = +x;
+    // "b = +x" is an expression
+    // "+x" and "b" is sub expression of "b = +x" expression
+    // "+x" expression's value category is PRValue expression
+    // "+x" expression's data type is int
+
+    b = x + 5;
+    // "b = x + 5" is an expression
+    // "b", "x + 5" are sub expressions of "b = x + 5" expression
+    // "x + 5" expression's value category is PRValue expression
+    // "x + 5" expression's data type is int
+
+    auto y = x + 5;
+    // "x + 5"  is an expression
+    // "x + 5" expression's value category is PRValue expression
+    // "x + 5" expression's data type is int
+
+    auto z = x + 5.;
+    // "x + 5." is an expression
+    // "x + 5." expression's value category is PRValue expression
+    // "x + 5." expression's data type is double
+  }
+*/
+
+/*
+  // <-------------------- REMINDER --------------------> 
+
+  int main()
+  {
+    char c = 'A';
+    // "c" declaration data type is char
+    // "char c = 'A'" is a declaration statement not an expression
+    // we can not talk about value category of a statement
+
+    c;
+    // "c" is an expression
+    // "c" expression's data type is char
+    // "c" expression's value category is LValue expression
+
+    +c;
+    // "+c" is an expression
+    // "+c" expression's data type is int(integral promotion)
+    // "+c" expression's value category is PRValue expression
+  }
+*/
+
+/*
+  // <-------------------- REMINDER --------------------> 
+
+  int main(){
+    int&& r = 10;
+    // "int&& r = 10" is a declaration statement
+    // r's declaration type is int&&
+
+    r;
+    // "r" is an expression
+    // "r" expression's data type is int (not int&&)
+    // "r" expression's value category is LValue expression
+
+    // RULE : expression's data type is a non-reference type!!!
+
+    int* p{};
+    // "int* p{}" is a declaration statement
+    // p's declaration type is int*
+    // we can not talk about value category of a statement
+
+    p;
+    // "p" is an expression
+    // "p" expression's data type is int*
+    // "p" expression's value category is LValue expression
+  }
+*/
