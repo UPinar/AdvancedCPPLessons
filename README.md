@@ -15,4 +15,5 @@
   - No NRVO Scenarios
 
 ### [Move Semantics](https://github.com/UPinar/AdvanceCPPLessons/tree/main/MoveSemantics)
-  - 
+  - Rule of Zero
+  - Bad Scenarios
