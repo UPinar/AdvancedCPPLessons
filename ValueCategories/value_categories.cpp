@@ -60,31 +60,34 @@
 
 /*
   -----------------------------------------------------------------------
-  <--- check identity_moveability.png --->
+                <--- check identity_moveability.png --->
 
   *  -> primary value categories         [PRValue, LValue, XValue]
   ** -> mixed (combine) value categories [GLValue, RValue]
   -----------------------------------------------------------------------
-  an expression's value category, 
-  indicates whether the expression has an identity
+    - an expression's value category, 
+      indicates whether the expression has an identity
 
-  (bir ifadenin değer kategorisi, 
-  o ifadenin bir kimliğe sahip olup olmadığını belirtir.)
+    - bir ifadenin değer kategorisi, 
+      o ifadenin bir kimliğe sahip olup olmadığını belirtir.)
   -----------------------------------------------------------------------
-  <--- check value_categories2.png --->
-  <--- check value_categories3.png --->
+                <--- check value_categories2.png --->
+                <--- check value_categories3.png --->
   -----------------------------------------------------------------------
-  ** -> if an expression has an identity it's value category is [GLValue]
+  ** : if an expression has an identity it's value category is [GLValue]
   there is a variable and our expression is representing that variable.
 
   identity means :
     that the expression has a memory location.
-    can be an operand of the address operator(&) [there are some exceptions]
-  -----------------------------------------------------------------------
+    can be an operand of the address operator(&) 
+    [there are some exceptions]
+                  ------------------------------------
   ** : if an expression can be moved from, it's value category is [RValue]
   -----------------------------------------------------------------------
   * : expression that has an identity, can not be moved(from)  [LValue]
+                  ------------------------------------
   * : expression that has no identity, can be moved(from)      [PRValue]
+                  ------------------------------------
   * : expression that has an identity, can be moved(from)      [XValue]
   -----------------------------------------------------------------------
 */
@@ -226,10 +229,11 @@
     int* ptr = &x;
     std::cout << p<decltype(*ptr)> << '\n';   // output -> LValue
 
-    // ------------------------------------------------------------------
-    // decltype operator's operand is generating unevaluated context !!!!
-    // p<decltype(*ptr)> > dereferencing operation is not being evaluated
-    // ------------------------------------------------------------------
+    // --------------------------------------------------------------
+    // decltype operator's operand is generating unevaluated context 
+    // p<decltype(*ptr)>> 
+    //  dereferencing operation will not be evaluated
+    // --------------------------------------------------------------
   }
 */
 
@@ -260,29 +264,29 @@
     int x = 10;
     int* ptr = &x;
 
-    pvalcat(x);         // output -> value category of 'x' is LValue
-    pvalcat(x + 5);     // output -> value category of 'x + 5' is PRValue
-    pvalcat(x++);       // output -> value category of 'x++' is PRValue
-    pvalcat(x--);       // output -> value category of 'x--' is PRValue
-    pvalcat(++x);       // output -> value category of '++x' is LValue
-    pvalcat(--x);       // output -> value category of '--x' is LValue
-    pvalcat(foo());     // output -> value category of 'foo()' is PRValue
-    pvalcat(bar());     // output -> value category of 'bar()' is LValue
-    pvalcat(baz());     // output -> value category of 'baz()' is XValue
+    pvalcat(x);       // output -> value category of 'x' is LValue
+    pvalcat(x + 5);   // output -> value category of 'x + 5' is PRValue
+    pvalcat(x++);     // output -> value category of 'x++' is PRValue
+    pvalcat(x--);     // output -> value category of 'x--' is PRValue
+    pvalcat(++x);     // output -> value category of '++x' is LValue
+    pvalcat(--x);     // output -> value category of '--x' is LValue
+    pvalcat(foo());   // output -> value category of 'foo()' is PRValue
+    pvalcat(bar());   // output -> value category of 'bar()' is LValue
+    pvalcat(baz());   // output -> value category of 'baz()' is XValue
 
     // void expressions value category is PRValue
-    pvalcat(func());    // output -> value category of 'func()' is PRValue
+    pvalcat(func());  // output -> value category of 'func()' is PRValue
 
     // constants are PRValues
-    pvalcat(45);        // output -> value category of '45' is PRValue
-    pvalcat(3.14);      // output -> value category of '3.14' is PRValue
-    pvalcat('A');       // output -> value category of ''A' is PRValue
+    pvalcat(45);      // output -> value category of '45' is PRValue
+    pvalcat(3.14);    // output -> value category of '3.14' is PRValue
+    pvalcat('A');     // output -> value category of ''A' is PRValue
 
     // string literals are LValues because they are arrays
-    pvalcat("hello");   // output -> value category of '"hello"' is LValue
+    pvalcat("hello"); // output -> value category of '"hello"' is LValue
 
     // function identifiers are LValues
-    pvalcat(foo);       // output -> value category of 'foo' is LValue
+    pvalcat(foo);     // output -> value category of 'foo' is LValue
 
     // std::move functions return value &&(R value reference)
     pvalcat(std::move(x));   
@@ -481,17 +485,17 @@
 */
 
 /*
-  ----------------------------------------------------------------------------
-  |               |    T&     |    const T&     |    T&&      |   const T&&  |
-  ----------------------------------------------------------------------------
-  | LValue        |     1     |        2        |     X       |       X      |
-  ----------------------------------------------------------------------------
-  | const LValue  |     X     |        1        |     X       |       X      |   
-  ----------------------------------------------------------------------------
-  | RValue        |     X     |        3        |     1       |       2      |
-  ----------------------------------------------------------------------------
-  | const RValue  |     X     |        2        |     X       |       1      |
-  ----------------------------------------------------------------------------
+  ----------------------------------------------------------------------
+  |               |   T&     |   const T&    |    T&&    |  const T&&  |
+  ----------------------------------------------------------------------
+  | LValue        |    1     |       2       |     X     |      X      |
+  ----------------------------------------------------------------------
+  | const LValue  |    X     |       1       |     X     |      X      |
+  ----------------------------------------------------------------------
+  | RValue        |    X     |       3       |     1     |      2      |
+  ----------------------------------------------------------------------
+  | const RValue  |    X     |       2       |     X     |      1      |
+  ----------------------------------------------------------------------
 */
 
 /*
@@ -659,8 +663,6 @@
 */
 
 /*
-   
-
   template <typename T>
   void func(T&& r); // universal(forwarding) reference
 
@@ -808,7 +810,8 @@
     auto& r = str;
     std::string&& r2 = foo(); // life extension
 
-    // "str", "r" and "r2" expression's value category is LValue expression
+    // "str", "r" and "r2" expression's value category
+    // is LValue expression
   }
 */
 
@@ -820,12 +823,13 @@
   void func(std::string&& s){
 
     auto str1 = s; 
-    // "s(identifier)" expression's value category is LValue expression
+    // "s" is an identifier
+    // "s" expression's value category is LValue expression
     // for str1 std::string's copy constructor will be called
 
     auto str2 = std::move(s);
     // "std::move(s)" is RValue expression
-    // for str2,  std::string's move constructor will be called
+    // for str2, std::string's move constructor will be called
   }
 
   // to use it for copy operation
@@ -1055,9 +1059,12 @@
     // move constructor : not declared
     // move assignment  : not declared
   };
-  // if we declare one of copy members(copy constructor or copy assignment)
+
+  // if we declare one of copy members
+  // (copy constructor OR copy assignment)
   // or a destructor, 
-  // move members(move constructor or move assignment) become not declared
+  // move members(move constructor OR move assignment) 
+  // become not declared
 */
 
 /*
@@ -1256,7 +1263,8 @@
 
     // Myclass's default constructor is implicitly declared defaulted
     // compiler generated default constructor will default initialize
-    // Member data member, but Member class does not have default constructor
+    // Member data member, 
+    // but Member class does not have default constructor
     // this will cause syntax error and compiler will 
     // implicitly delete Myclass's default constructor
   }
@@ -1302,7 +1310,8 @@
     // Myclass's default constructor is implicitly declared defaulted
     // compiler generated default constructor need to call 
     // Base class's default constructor because it has a Base class
-    // object inside of it, but Base class does not have a default constructor
+    // object inside of it, 
+    // but Base class does not have a default constructor
     // this will cause syntax error and compiler will
     // implicitly delete Myclass's default constructor
   }
@@ -1446,7 +1455,7 @@
   };
 
   int main(){
-    Myclass m{};  // value initialization -> first step zero initialization
+    Myclass m{};  // value initialization -> first step zero init
     m.print();    // output -> mx : 0 mname : ()
     // mx -> 0, mname -> ""
   }
