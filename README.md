@@ -6,7 +6,7 @@
   - universal(forwarding) reference
   - reference collapsing
   - special member functions **REMINDER**
-  - `noexcept` specifier |  `noexcept` operator [REMINDER]
+  - `noexcept` specifier |  `noexcept` operator **REMINDER**
 
 ### [Copy Elision](https://github.com/UPinar/AdvanceCPPLessons/tree/main/CopyElision)
   - Mandatory Copy Elision
