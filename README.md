@@ -5,7 +5,7 @@
   - `std::move` <algorithm> <utility>
   - universal(forwarding) reference
   - reference collapsing
-  - special member functions [REMINDER]
+  - special member functions **REMINDER**
   - `noexcept` specifier |  `noexcept` operator [REMINDER]
 
 ### [Copy Elision](https://github.com/UPinar/AdvanceCPPLessons/tree/main/CopyElision)
@@ -18,9 +18,9 @@
 ### [Move Semantics](https://github.com/UPinar/AdvanceCPPLessons/tree/main/MoveSemantics)
   - Rule of Zero
   - Bad Scenarios
-  - `noexcept` [REMINDER]
-  - `override` contextual keyword(bağlamsal anahtar sözcük) [REMINDER]
+  - `noexcept` **REMINDER**
+  - `override` contextual keyword(bağlamsal anahtar sözcük) **REMINDER**
   - move sematics and `noexcept` specifier relationship
   - moved from state
-  - universal(forwarding) reference [REMINDER]
-  - perfect forwarding [REMINDER]
+  - universal(forwarding) reference **REMINDER**
+  - perfect forwarding **REMINDER**
