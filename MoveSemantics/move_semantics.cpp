@@ -436,6 +436,42 @@
 */
 
 /*
+  // overriding virtual functions 
+  class Base{
+  public:
+    virtual void foo() noexcept (sizeof(int) < 8);
+  };
+
+  class Der : public Base{
+  public:
+    virtual void foo() noexcept (sizeof(int) < 4) override; 
+    // syntax error
+
+    // error: looser exception specification 
+    // on overriding virtual function
+    // 'virtual void Der::foo() noexcept (false)'
+
+    // because of sizeof(int) = 4, derived class function is not giving
+    // no-throw guarantee that base class function is giving
+    // this will cause syntax error
+  };
+*/
+
+/*
+  class Base{
+  public:
+    void foo(int) noexcept;
+  };
+
+  class Der : public Base{
+  public:
+    void foo(int); // VALID
+  };
+  // Der class's foo function is not a virtual function 
+  // that is overriding Base class's foo function
+*/
+
+/*
   classes 
     - move constructor
     - move assignment
@@ -628,6 +664,8 @@
 */
 
 /*
+  #include <type_traits>
+
   class AClass{
   public:
     AClass();
@@ -668,6 +706,41 @@
 */
 
 /*
+  #include <type_traits>  // std::is_nothrow_destructible_v
+
+  class Myclass{
+  public:
+    ~Myclass();   // user declared to be defined
+  };
+
+  int main()
+  {
+    std::cout << std::boolalpha;
+    std::cout << std::is_nothrow_destructible_v<Myclass> << '\n';
+    // output -> true
+
+    // if we declare a destructor without noexcept specifier
+    // it will be implicitly noexcept
+  }
+*/
+
+/*
+  #include <type_traits>  // std::is_nothrow_destructible_v
+
+  class Myclass{
+  public:
+    ~Myclass() noexcept(false);   // C++20
+  };
+
+  int main()
+  {
+    std::cout << std::boolalpha;
+    std::cout << std::is_nothrow_destructible_v<Myclass> << '\n';
+    // output -> false
+  }
+*/
+
+/*
   1. basic exception guarantee : 
     - if a function will throw an exception,
       object will not be in invalid state and should be usable.
@@ -704,6 +777,63 @@
   // if code1, code2, code3 throws an exception
   // foo() function will leak resource
   // so this function is not giving basic exception guarantee
+*/
+
+/*
+  --------------------------------------------------------------------
+  | override contextual keyword(bağlamsal anahtar sözcük) [REMINDER] |
+  --------------------------------------------------------------------
+*/
+
+/*
+  int main()
+  {
+    int override = 10;    
+    // because of override is a contextual keyword
+    // it can be used as an identifier
+  }
+*/
+
+/*
+  class Base{
+  public:
+    virtual void foo(int);
+    virtual void func(unsigned int);
+    void bar(int);  // not a virtual function
+  };
+
+  class Der : public Base{
+  public:
+    void foo(int);
+    void func(int);
+    void bar(int);
+  };
+
+  // for a function to be override function
+  // functions signature and return type should be same
+
+  // Der::foo function is overriding Base::foo function
+  // Der::func function is not overriding Base::func function(hiding)
+  // Der::bar function is not overriding Base::bar function
+*/
+
+/*
+  // when override contextual keyword is used
+
+  class Base{
+  public:
+    virtual void func(unsigned int);
+    void bar(int);
+  };
+
+  class Der : public Base{
+  public:
+    void func(int) override; // syntax error
+    // Base::foo function's signature is not same
+
+    void bar(int) override; // syntax error
+    // Base::bar function is not a virtual function
+  };
 */
 
 /*
@@ -829,16 +959,41 @@
 */
 
 /*
-  #include <string>
-  #include <utility>  // std::move
-  #include <vector>
-  #include <chrono>
+  ---------------------------------------------------------------
+  Question :  how much new storage created when reallocation 
+              is done in the std::vector? 
+  Answer : implementation defined, compiler dependent(2x or 1.5x)
+  ---------------------------------------------------------------
+  Question :  Created a std::vector with 1'000'000 elements,
+              deleted 999'999 elements, only 1 left
+              what is the capacity of the std::vector?
+  Answer : capacity is not changed, it is still 1'000'000
 
-  class Mystr{
+  shrink_to_fit function can be used to shrink the capacity
+  ---------------------------------------------------------------
+*/
+
+/*
+  #include <vector>
+  #include <string>
+  #include <utility>      // std::move
+  #include <chrono>       // std::steady_clock, std::duration
+  #include <type_traits>  // std::is_nothrow_move_constructible_v
+
+  class AClass{
   public:
-    Mystr() : m_str(1000, 'A') {} 
-    Mystr(const Mystr& other) : m_str(other.m_str) {}
-    Mystr(Mystr&& other) noexcept : m_str(std::move(other.m_str)) {}
+    AClass() : m_str(500, 'A') {} 
+    AClass(const AClass& other) = default;
+    AClass(AClass&& other) noexcept(false) = default;
+  private:
+    std::string m_str;
+  };
+
+  class BClass{
+  public:
+    BClass() : m_str(500, 'A') {} 
+    BClass(const BClass& other) = default;
+    BClass(BClass&& other) = default;
   private:
     std::string m_str;
   };
@@ -848,17 +1003,785 @@
     using namespace std;
     using namespace std::chrono;
 
-    vector<Mystr> vec(1'000'000);
-    cout << "vec.capacity(): " << vec.capacity() << '\n';
+    std::cout << std::boolalpha;
+
+    vector<AClass> vecA(1'000'000);
+    cout << "AClass move ctor is noexcept ? " 
+         << is_nothrow_move_constructible_v<AClass> << '\n';
+
+    cout << "vecA.capacity(): " << vecA.capacity() << '\n';
 
     auto tp_start = steady_clock::now();
-
-    vec.reserve(vec.capacity() + 1);
-
+    vecA.reserve(vecA.capacity() + 1);
     auto tp_end = steady_clock::now();
 
-    cout << duration<double, std::milli>(tp_end - tp_start).count() 
-        << " ms" << '\n';
-    cout << "vec.capacity(): " << vec.capacity() << '\n';
+    cout << duration<double, std::milli>(tp_end - tp_start) << '\n';
+    cout << "vecA.capacity(): " << vecA.capacity() << '\n';
+
+    cout << "------------------------------------\n";
+
+    cout << "BClass move ctor is noexcept ? " 
+         << is_nothrow_move_constructible_v<BClass> << '\n';
+
+    vector<BClass> vecB(1'000'000);
+    cout << "vecB.capacity(): " << vecB.capacity() << '\n';
+
+    tp_start = steady_clock::now();
+    vecB.reserve(vecB.capacity() + 1);
+    tp_end = steady_clock::now();
+
+    cout << duration<double, std::milli>(tp_end - tp_start) << '\n';
+    cout << "vecB.capacity(): " << vecB.capacity() << '\n';
+
+    // output ->
+    //  AClass move ctor is noexcept ? false
+    //  vecA.capacity(): 1000000
+    //  1027.76ms
+    //  vecA.capacity(): 1000001
+    //  ------------------------------------
+    //  BClass move ctor is noexcept ? true
+    //  vecB.capacity(): 1000000
+    //  63.9915ms
+    //  vecB.capacity(): 1000001
+  }
+*/
+
+/*
+                    --------------------
+                    | moved from state |
+                    --------------------
+*/
+
+/*
+  STL's classes are giving some guarantees about moved from state
+    - destructable
+    - unspecified but in a valid state
+    - invariants are not broken
+*/
+
+/*
+  #include <utility> // std::move
+
+  template <typename T>
+  void Swap(T& x, T& y)
+  {
+    T temp = std::move(x);
+    x = std::move(y);     // x is in moved from state
+    y = std::move(temp);  // y is in moved from state
+  }
+  // using x and y, when they are in move from state
+*/
+
+/*
+  #include <string>
+  #include <utility>  // std::swap
+
+  int main()
+  {
+    std::string s(30, 'A');
+    auto& r1 = s;
+    auto& r2 = s;
+
+    std::cout << s << '\n';
+    // output -> AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+    std::swap(r1, r2);
+
+    std::cout << s << '\n';
+    // output -> AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+  }
+*/
+
+/*
+  - invariants are not broken
+
+  i.e : Think about a linked_list implementation
+    - head_pointer -> data member
+
+    invariant : 
+      - if list is empty, head_pointer should be nullptr
+      - if minimum 1 element in the list, 
+        head_pointer should point to the first Node
+*/
+
+/*
+  class Myclass{
+
+  private:
+    int mx; 
+    // Invariant : this data member should always be positive
+  };
+*/
+
+/*
+  Question :  Why compiler generated move members can create 
+              a problem ?
+    - data member's restraints can broke invariants
+      i.e : some data members should always be in some range
+      but in compiler generated move members, when an object
+      becomes moved from state, it will set those data members 
+      not in that range.
+
+    - dependency between classes non-static data members 
+    can broke invariants
+      i.e : we have a Triangle class which have 3 double data 
+      members that holding vertexes of the triangle and 1 double
+      for the area of the triangle. When one of the vertexes changed
+      area should also be changed.
+
+    - pointer-like data members(iterators, smart pointers) 
+    state broke the invariants
+*/
+
+/*
+  #include <string>
+
+  // Card class's move members are implicitly declared defaulted
+  class Card{
+  public:
+    Card(const std::string& val) : m_val{ val }{}
+
+    std::string get_value() const { return m_val; }
+  private:
+    std::string m_val;  // rank + "_of_" + suit
+  };
+
+  // Card class's invariant : even if it has been moved
+  // it should always hold its value(m_val)
+  int main()
+  {
+    Card c1{ "king_of_hearts" };
+    auto c2 = std::move(c1);
+    // c1 is in moved from state, it is data member(std::string)
+    // becomes an empty string -> invariant is broken
+
+    std::cout << c1.get_value() << '\n';
+    // output -> ""
+  }
+*/
+
+/*
+  #include <string>   // std::to_string
+
+  // IntString class's move members are implicitly declared defaulted
+  class IntString{
+  public:
+    IntString(int val = 0) : 
+        m_val{ val }, m_sval{ std::to_string(val) } {}
+
+    void set_value(int i)
+    {
+      m_val = i;
+      m_sval = std::to_string(i);
+    }
+
+    void print()const 
+    {
+      std::cout << "[" << m_val << "/'" << m_sval << "']\n";
+    }  
+  private:
+    int m_val;          // value
+    std::string m_sval; // cached string representation of the value
+  };
+
+  int main()
+  {
+    IntString isx{ 23 };
+    IntString isy;
+    
+    std::cout << "isx and isy before move\n";
+    isx.print();
+    isy.print();
+
+    isy = std::move(isx); // isx is in moved from state
+
+    std::cout << "isx and isy after move\n";
+    isx.print();
+    isy.print();
+
+    // output ->
+    //  isx and isy before move
+    //  [23/'23']
+    //  [0/'0']
+    //  isx and isy after move
+    //  [23/'']    -> m_sval becomes empty string but m_val is still 23
+    //  [23/'23']
+
+    // IntString class's invariants becomes broken
+  }
+*/
+
+/*
+  #include <memory>   // std::shared_ptr, std::make_shared
+  #include <string>   // std::to_string
+
+  class SharedInt {
+  public:
+    explicit SharedInt(int val) : 
+        m_sp{ std::make_shared<int>(val) } {}
+
+    std::string as_string() const
+    {
+      return std::to_string(*m_sp);
+      // if m_sp is nullptr, undefined behavior(ub)
+    }
+  private:
+    std::shared_ptr<int> m_sp;
+  };
+
+  int main()
+  {
+    SharedInt x{ 22 };
+    SharedInt y{ x }; // x and y share the value of 22
+
+    std::cout << x.as_string() << '\n';   // output -> 22
+    std::cout << y.as_string() << '\n';   // output -> 22
+
+    std::cout << "-----------------\n";
+
+    SharedInt a{ 44 };
+    SharedInt b{ std::move(a) };
+    // a's reference count becomes 0 (1 -> 0)
+
+    std::cout << a.as_string() << '\n';  // undefined behavior(ub)
+    // a is in moved from state, m_sp is nullptr
+
+    // SharedInt class's invariants becomes broken
+  }
+*/
+
+/*
+            ----------------------------------------------
+            | universal(forwarding) reference (REMINDER) |
+            ----------------------------------------------
+*/
+
+/*
+  template <typename T>
+  void func(T&& a);     // a is a universal reference
+
+  void foo(auto&& b);   // b is a universal reference
+
+  int main()
+  {
+    auto&& c = 10;      // c is a universal reference
+  }
+*/
+
+/*
+  // const or non-const, LValue or RValue expressions 
+  // can be sent to both foo and func functions
+
+  template <typename T>
+  void foo(const T&) 
+  {
+    // inside foo() function we lost the information of the
+    // value category and the constness of the argument
+  }
+
+  template <typename T>
+  void func(T&&)
+  {
+    // inside func() function we have the information that 
+    // the argument is an RValue expression or an LValue expression
+    // and also the constness of the argument
+
+    // we can use those informations in compile time
+  }
+*/
+
+/*
+  for universal references T will deduce to
+    - for LValue expression argument -> T&
+    - for RValue expression argument -> T
+
+
+  argument      constness         value category
+  --------------------------------------------------------------
+  Scenario 1:   non-const         LValue expression     
+  T   ===> Myclass&         
+  arg ===> Myclass& (& - && -> &)
+  --------------------------------------------------------------
+  Scenario 2:   non-const         RValue expression
+  T   ===> Myclass          
+  arg ===> Myclass&& (no reference collapsing)
+  --------------------------------------------------------------
+  Scenario 3:   const             LValue expression
+  T   ===> const Myclass&   
+  arg ===> const Myclass& (& - && -> &)
+  --------------------------------------------------------------
+  Scenario 4:   const             RValue expression
+  T   ===> const Myclass    
+  arg ===> const Myclass&& (no reference collapsing)
+  --------------------------------------------------------------
+*/
+
+/*
+  template <typename T>
+  void func(T&& x)
+  {
+    // when we check T, we can understand 
+    // arguments constness and value category
+    // if T is reference type     -> argument is LValue expression
+    // if T is not reference type -> argument is RValue expression
+
+    // when we check x's declaration type, we can understand
+    // arguments constness and value category
+    // if x is R value reference -> argument is RValue expression
+    // if x is L value reference -> argument is LValue expression
+  }
+
+  class Myclass{};
+
+  int main(){
+    Myclass m;
+    func(m);              // Scenario 1 
+    // "m" is an LValue expression(non-const)
+
+    func(Myclass{});      // Scenario 2, 
+    //  "Myclass{}" is an (P)RValue expression(non-const)
+
+    const Myclass m2;
+    func(m2);             // Scenario 3
+    // "m2" is an LValue expression (const)
+
+    func(std::move(m2));  // Scenario 4
+    // "std::move(m2)" is an RValue expression(const)
+  }
+*/
+
+/*
+  template <typename T>
+  void foo(T&& arg)
+  { 
+    // sending an argument without losing its 
+    // value category and constness
+
+    // if T type is reference type, argument is LValue expression
+    bar(arg);
+
+    // if T type is not reference type, argument is RValue expression
+    bar(std::move(arg));
+  }
+
+  template <typename T>
+  void func(T&& arg)
+  {
+    std::forward<T>(arg); 
+    // "std::forward<T>(arg)" is an expression
+
+    // if arg is an LValue reference, 
+    // "std::forward<T>(arg)" expression is an LValue expression
+
+    // if arg is an RValue reference,
+    // "std::forward<T>(arg)" expression is an RValue expression
+
+    bar(std::forward<T>(arg));
+    // sending an argument without losing its
+    // value category and constness
+    // it is called perfect forwarding
+  }
+*/
+
+/*
+                ---------------------------------
+                | perfect forwarding (REMINDER) |
+                ---------------------------------
+*/
+
+/*
+  - container's emplace functions 
+      (emplace, emplace_back, emplace_front, emplace_after)
+
+  - std::make_unique, std::make_shared functions
+*/
+
+/*
+                <--- check emplace_back.png --->
+
+  --- std::vector<Myclass>::push_back function overloads ---
+  push_back(const Myclass&) -> Myclass's copy constructor will be called
+  push_back(Myclass&&)      -> Myclass's move constructor will be called
+
+  --- std::vector<Myclass>::emplace_back function ---
+  emplace_back(Args&&...)   -> Myclass's constructor will be called
+  arguments will be perfect forwarded to Myclass's constructor
+*/
+
+/*
+  std::make_unique will return std::unique_ptr object
+
+  std::make_unique<Myclass>(Args&&...) function will call
+    - Myclass objects constructor 
+    - arguments will perfect forwarded to Myclass's constructor
+*/
+
+/*
+  #include <utility>  // std::forward
+
+  class Myclass{};
+
+  void func(Myclass&)
+  {
+    std::cout << "Myclass&\n";
+  }
+
+  void func(const Myclass&)
+  {
+    std::cout << "const Myclass&\n";
+  }
+
+  void func(Myclass&&)
+  {
+    std::cout << "Myclass&&\n";
+  }
+
+  void func(const Myclass&&)
+  {
+    std::cout << "const Myclass&&\n";
+  }
+
+  template <typename T>
+  void call_func(T&& t)
+  {
+    func(std::forward<T>(t));
+  }
+
+  // perfect forwarding with call_func overloads 
+  // void call_func(Myclass& m)
+  // {
+  //   func(m);
+  // }
+
+  // void call_func(const Myclass& m)
+  // {
+  //   func(m);
+  // }
+
+  // void call_func(Myclass&& m)
+  // {
+  //   func(std::move(m));
+  // }
+
+  // void call_func(const Myclass&& m)
+  // {
+  //   func(std::move(m));
+  // }
+
+  int main()
+  {
+    Myclass m;
+    const Myclass cm;
+
+    // "m" is an LValue expression
+    func(m);                    // output -> Myclass&
+    call_func(m);               // output -> Myclass&
+
+    // "cm" is an LValue expression
+    func(cm);                   // output -> const Myclass&
+    call_func(cm);              // output -> const Myclass&
+
+    // "Myclass{}" is PRValue expression 
+    func(Myclass{});            // output -> Myclass&&
+    call_func(Myclass{});       // output -> Myclass&&
+
+    // "std::move(m)" is an XValue expression
+    func(std::move(m));         // output -> Myclass&&
+    call_func(std::move(m));    // output -> Myclass&&
+
+    // "std::move(cm)" is an XValue expression
+    func(std::move(cm));        // output -> const Myclass&&
+    call_func(std::move(cm));   // output -> const Myclass&&
+  }
+*/
+
+/*
+  // if a function that we want to call have 2 arguments
+  template <typename T, typename U>
+  void call_foo(T&& t, U&& u)
+  {
+    foo(std::forward<T>(t), std::forward<U>(u));
+  }
+
+  // if a function that we want to call more than 1 argument
+  template <typename ...Args>
+  void call_foo(Args&&... args)
+  {
+    foo(std::forward<Args>(args)...); // pack expansion
+  }
+*/
+
+/*
+  // std::make_unique implementation
+
+  #include <memory>   // std::unique_ptr
+
+  template <typename T, typename ...Args>
+  std::unique_ptr<T> Make_Unique(Args&&... args)
+  {
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+  }
+*/
+
+/*
+  // basic std::forward implementation
+
+  #include <type_traits>  // std::remove_reference_t
+
+  // not a universal reference parameter
+  template <typename T>
+  constexpr T&& Forward(std::remove_reference_t<T>& t) noexcept
+  {
+    return static_cast<T&&>(arg);
+    // if T is L value reference type, (& - && -> &)
+    // return type will be T& (L value reference)
+
+    // if T is not a reference type, (no reference collapsing)
+    // return type will be T&& (R value reference)
+  }
+
+
+  // if t is an LValue expression, T will be deduced to T&
+  // if t is an RValue expression, T will be deduced to T
+  template <typename T>
+  void call_foo(T&& t)
+  {
+    foo(Forward<T>(t));   
+    // if t is an LValue expression,
+    // T will be deduced to T& in call_foo
+    // "Forward<T>(t)" expressions T'type is call_foo functions T&
+
+    // if t is an RValue expression,
+    // T will be deduced to T in call_foo
+    // "Forward<T>(t)" expressions T'type is call_foo functions T
+
+    // so Forward function can be called with
+    //  - L value reference type
+    //  - non-reference type
+  }
+*/
+
+/*
+  // libc++ implementation of std::forward
+
+  #include <type_traits>  
+  // std::remove_reference_t, std::is_lvalue_reference_v
+
+  template <typename T>
+  T&& Forward(std::remove_reference_t<T>& t) noexcept
+  {
+    return static_cast<T&&>(t);
+  }
+
+  template <typename T>
+  T&& Forward(std::remove_reference_t<T>&& t) noexcept
+  {
+    static_assert(!std::is_lvalue_reference_v<T>, 
+      "Can not forward an RValue as an LValue");
+    return static_cast<T&&>(t);
+  }
+
+  class Myclass{};
+
+  int main()
+  {
+    Forward<Myclass&>(Myclass{});
+    // error: static assertion failed: 
+    // Can not forward an RValue as an LValue
+  }
+*/
+
+/*
+  #include <utility>  // std::forward
+
+  class Myclass{};
+
+  void func(Myclass&)
+  {
+    std::cout << "Myclass&\n";
+  }
+
+  void func(const Myclass&)
+  {
+    std::cout << "const Myclass&\n";
+  }
+
+  void func(Myclass&&)
+  {
+    std::cout << "Myclass&&\n";
+  }
+
+  void func(const Myclass&&)
+  {
+    std::cout << "const Myclass&&\n";
+  }
+
+  template <typename T>
+  void call_func_1(T&& arg)
+  {
+    func(std::forward<T>(arg));
+  }
+
+  template <typename T>
+  void call_func_2(T&& arg)
+  {
+    func(std::forward<decltype(arg)>(arg));
+  }
+
+  int main()
+  {
+    Myclass m;
+    const Myclass cm;
+
+    auto fn = [](auto&& r){
+      func(std::forward<decltype(r)>(r));
+    };
+    // compiler generated closure type's operator() function
+    // is a template and its parameter is a universal reference
+
+    // "m" is an LValue expression
+    call_func_1(m);               // output -> Myclass&
+    call_func_2(m);               // output -> Myclass&
+    fn(m);                        // output -> Myclass& 
+
+    // "cm" is an LValue expression
+    call_func_1(cm);              // output -> const Myclass&
+    call_func_2(cm);              // output -> const Myclass&
+    fn(cm);                       // output -> const Myclass&
+
+    // "Myclass{}" is PRValue expression 
+    call_func_1(Myclass{});       // output -> Myclass&&
+    call_func_2(Myclass{});       // output -> Myclass&&
+    fn(Myclass{});                // output -> Myclass&&
+
+    // "std::move(m)" is an XValue expression
+    call_func_1(std::move(m));    // output -> Myclass&&
+    call_func_2(std::move(m));    // output -> Myclass&&
+    fn(std::move(m));             // output -> Myclass&&
+
+    // "std::move(cm)" is an XValue expression
+    call_func_1(std::move(cm));   // output -> const Myclass&&
+    call_func_2(std::move(cm));   // output -> const Myclass&&
+    fn(std::move(cm));            // output -> const Myclass&&
+  }
+*/
+
+/*
+        <--- check function_overload_resolution.png --->
+*/
+
+/*
+  class Myclass{
+  public:
+    Myclass(const Myclass&);  // copy constructor
+    Myclass(Myclass&&);       // move constructor
+
+    template <typename T>
+    Myclass(T&&);             // universal constructor
+  };
+
+  int main()
+  {
+    Myclass m(12);
+    Myclass m2(3.4);
+  }
+*/
+
+/*
+  #include <utility>  // std::move
+
+  class Myclass{
+  public:
+    Myclass() = default;
+
+    Myclass(const Myclass&){
+      std::cout << "copy ctor\n";
+    }
+
+    Myclass(Myclass&&){
+      std::cout << "move ctor\n";
+    }
+
+    template <typename T>
+    Myclass(T&&){
+      std::cout << "universal ctor\n";
+    }
+  };
+
+  int main()
+  {
+    Myclass mx;
+    const Myclass cmx;
+
+    Myclass a{ cmx };             
+    // "cmx" is an LValue expression
+    // There is a Myclass(const Myclass&) overload    [exact match]
+    // output -> copy ctor
+
+    Myclass b{ mx };             
+    // "mx" is an LValue expression
+    // There is no Myclass(Myclass&) overload         [exact match]
+    // so universal constructor is called             [2'nd choice]
+    // output -> universal ctor
+
+    // Generally we wrote this line to call copy ctor
+    // but universal constructor is called
+
+    Myclass c{ std::move(mx) };   
+    // "std::move(mx)" is an XValue expression
+    // There is a Myclass(Myclass&&) overload         [exact match]
+    // output -> move ctor
+
+    Myclass d{ std::move(cmx) };  
+    // "std::move(cmx)" is an XValue expression
+    // There is no Myclass(const Myclass&&) overload  [exact match]
+    // so universal constructor is called             [2'nd choice]
+    // output -> universal ctor
+  }
+*/
+
+/*
+  // We want this function to take std::string argument 
+  // but its value category and constness will retain(kaybetmemek)
+  template <typename T>
+  void func(T&&);
+
+  // - we can use SFINAE
+  // - we can use concepts(require expression)
+*/
+
+/*
+  #include <utility>      // std::move
+  #include <type_traits>  // std::is_same_v, std::remove_cvref_t
+
+  class Myclass{
+  public:
+    Myclass() = default;
+
+    Myclass(const Myclass&){
+      std::cout << "copy ctor\n";
+    }
+
+    Myclass(Myclass&&){
+      std::cout << "move ctor\n";
+    }
+
+    template <typename T>
+      requires (!std::is_same_v<std::remove_cvref_t<T>, Myclass>)
+    Myclass(T&&){
+      std::cout << "universal ctor\n";
+    }
+  };
+
+  int main()
+  {
+    Myclass mx;
+    const Myclass cmx;
+
+    Myclass a{ cmx };               // output -> copy ctor
+    Myclass b{ mx };                // output -> copy ctor    
+    Myclass c{ std::move(mx) };     // output -> move ctor
+    Myclass d{ std::move(cmx) };    // output -> copy ctor
+    Myclass e{ 10 };                // output -> universal ctor
   }
 */
