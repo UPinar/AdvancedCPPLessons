@@ -1785,3 +1785,934 @@
     Myclass e{ 10 };                // output -> universal ctor
   }
 */
+
+/*
+  // ---------------- REMINDER ----------------
+
+  #include <utility>  // std::forward
+
+  template <typename T>
+  void func(T&& t)
+  {
+    foo(std::forward<T>(t));            // perfect forwarding
+  }
+
+  // abbreviated template syntax (C++20)
+  void bar(auto&& t)
+  {
+    foo(std::forward<decltype(t)>(t));  // perfect forwarding
+  }
+
+
+  int main()
+  {
+    auto fn = [](auto&& t){
+      foo(std::forward<decltype(t)>(t));  // perfect forwarding
+    };
+
+    auto fn_2 = []<typename T>(T&& r){    // (C++20)
+      foo(std::forward<T>(r));            // perfect forwarding
+    };
+  }
+*/
+
+/*
+  // using forwarding reference parameter 
+  // for checking constness of the argument
+
+  #include <string>
+
+  void navigate(std::string::iterator beg, 
+                std::string::iterator end)
+  {
+    std::cout << "non const semantics on the passed range\n";
+  }
+
+  void navigate(std::string::const_iterator beg, 
+                std::string::const_iterator end)
+  {
+    std::cout << "const semantics on the passed range\n";
+  }
+
+  template <typename T>
+  void process_container(T&& container)  // universal reference
+  {
+    navigate(container.begin(), container.end());
+    // if parameter is const qualified, 
+    // becuase of the universal reference will not drop constness
+    // begin() and end() functions 
+    // will return const_iterator, otherwise iterator
+  }
+
+  int main()
+  {
+    std::string str{ "mutable world" };
+    const std::string c_str{ "immutable universe" };
+
+    process_container(str);
+    // output -> non const semantics on the passed range
+
+    process_container(c_str);
+    // output -> const semantics on the passed range
+
+    process_container(std::string { "temporary life" });
+    // output -> non const semantics on the passed range
+
+    process_container(std::move(str));
+    // output -> non const semantics on the passed range
+
+    process_container(std::move(c_str));
+    // output -> const semantics on the passed range
+  }
+*/
+
+/*
+  // using forwarding reference parameter 
+  // for checking constness of the argument
+
+  #include <type_traits>  // std::is_const_v, std::remove_reference_t
+  #include <string>
+
+  template <typename T>
+  void func(T&&)    // universal reference parameter
+  {
+    if constexpr (std::is_const_v<std::remove_reference_t<T>>)
+      std::cout << "const argument\n";
+    else
+      std::cout << "non-const argument\n";
+  }
+
+  // for reference type when T deduce to const int& (low-level const)
+  // without using std::remove_reference_t metafunction
+  // std::is_const_v<T> will return false 
+  // if will check that if a reference type is const qualified
+
+  int main()
+  {
+    std::string str{ "hello world" };
+    const std::string c_str{ "hello universe" };
+
+    func(str);      // output -> non-const argument
+    func(c_str);    // output -> const argument
+  }
+*/
+
+/*
+  // using forwarding reference parameter 
+  // for checking the value category of the argument
+
+  #include <type_traits>  // std::is_lvalue_reference_v
+
+  // T is an L value reference type (if argumnen is LValue expression)
+  // T is a non-reference type (if argument is RValue expression)
+  template <typename T>
+  void func(T&&)    // universal reference parameter
+  {
+    if constexpr (std::is_lvalue_reference_v<T>)
+      std::cout << "LValue argument\n";
+    else
+      std::cout << "RValue argument\n";
+  }
+
+  class Myclass{};
+
+  int main()
+  {
+    func(Myclass{});    // output -> RValue argument
+    // "Myclass{}" is PRValue expression
+
+    Myclass m;
+    func(m);            // output -> LValue argument
+    // "m" is an LValue expression
+
+    func(std::move(m)); // output -> RValue argument
+    // "std::move(m)" is an XValue expression
+  }
+*/
+
+/*
+  // <------------------ REMINDER ------------------>
+  template <typename T>
+  void func(T, T);
+
+  int main()
+  {
+    func(1, 2);
+    func(1, 2.);  // syntax error
+    // error: no matching function for call to 'func(int, double)'
+  }
+*/
+
+/*
+  // <------------------ REMINDER ------------------>
+  template <typename T>
+  void func(T, T);
+
+  template <typename T>
+  void foo(T&, T&);
+
+  int main()
+  {
+    func("hello", "universe"); // VALID
+    // const char*, const char*
+
+    foo("hello", "universe");  // syntax error
+    // error: no matching function for call to 
+    // 'foo(const char [6], const char [9])'
+
+    foo("hello", "world");     // VALID
+    // const char[6], const char[6]
+  }
+*/
+
+/*
+  // <------------------ Problem ------------------>
+
+  #include <vector>
+  #include <string>
+
+  template <typename T>
+  void insert(std::vector<T>& vec, T&& elem)
+  {
+    vec.push_back(std::forward<T>(elem));
+  }
+
+  int main()
+  {
+    std::vector<std::string> svec;
+    std::string str;
+
+    insert(svec, str);  // syntax error
+    // error: no matching function for call to 
+    // 'insert( std::vector<std::__cxx11::basic_string<char> >&, 
+    //          std::string&)'
+
+    // for 1st param (std::vector<T>&)  
+    //  -> T will deduce to std::string
+    // for 2nd param (T&&)              
+    //  -> T will deduce to std::string&
+  }
+*/
+
+/*
+  // <------------------ Solution_1 ------------------>
+
+  #include <vector>
+  #include <string>
+  #include <type_traits>  // std::remove_reference_t
+
+  template <typename T>
+  void insert(std::vector<std::remove_reference_t<T>>& vec, 
+              T&& elem)
+  {
+    vec.push_back(std::forward<T>(elem));
+  }
+
+  int main()
+  {
+    std::vector<std::string> svec;
+    std::string str;
+
+    insert(svec, str);  // VALID
+
+    // for 2nd param (T&&)
+    //  -> T will deduce to std::string& 
+    // because of 1st param T can be deduced to std::string&
+    // T will deduce to std::string&
+  }
+*/
+
+/*
+  // <------------------ Solution_2 ------------------>
+
+  #include <vector>
+  #include <string>
+
+  template <typename ElemType, typename T>
+  void insert(std::vector<ElemType>& vec, T&& elem)
+  {
+    vec.push_back(std::forward<T>(elem));
+  }
+
+  int main()
+  {
+    std::vector<std::string> svec;
+    std::string str;
+
+    insert(svec, str);  // VALID
+  }
+*/
+
+/*
+  // <------------------ Solution_3 ------------------>
+
+  #include <vector>
+  #include <string>
+
+  template <typename Container, typename T>
+  void insert(Container& con, T&& elem)
+  {
+    con.push_back(std::forward<T>(elem));
+  }
+
+  int main()
+  {
+    std::vector<std::string> svec;
+    std::string str;
+
+    insert(svec, str);  // VALID
+  }
+*/
+
+/*
+                            ----------
+                            | auto&& |
+                            ----------
+*/
+
+/*
+  class Myclass{};
+
+  template <typename T>
+  void foo(T);
+
+  template <typename T>
+  void bar(T&);
+
+  template <typename T>
+  void baz(T&&);
+
+  int main()
+  {
+    Myclass mx;
+    // ----------------------------------------------
+    foo(mx); 
+    // deduction done for T type in foo function, 
+    auto x = mx;
+    // will be same as the deduction for auto type
+
+    // ----------------------------------------------
+
+    bar(mx);
+    // deduction done for T type in bar function,
+    auto& y = mx;
+    // will be same as the deduction for auto type
+
+    // ----------------------------------------------
+
+    baz(mx);
+    // deduction done for T type in baz function,
+    auto&& z = mx;
+    // will be same as the deduction for auto type
+
+    // ----------------------------------------------
+
+    Myclass m;
+    const Myclass cm;
+
+    auto&& r3 = m;              // Myclass& r3 = m;
+    // "m" is an LValue expression
+    // auto type deduction will be Myclass& (& - && -> &)
+
+    auto&& r6 = cm;             // const Myclass& r6 = cm;
+    // "cm" is an LValue expression
+    // auto type deduction will be const Myclass& (& - && -> &)
+
+    auto&& r4 = Myclass{};      // Myclass&& r4 = Myclass{};
+    // "Myclass{}" is PRValue expression
+    // auto type deduction will be Myclass 
+
+    auto&& r5 = std::move(m);   // Myclass&& r5 = std::move(m);
+    // "std::move(m)" is an XValue expression
+    // auto type deduction will be Myclass
+
+    auto&& r7 = std::move(cm);  // const Myclass&& r7 = std::move(cm);
+    // "std::move(cm)" is an XValue expression
+    // auto type deduction will be const Myclass
+  }
+*/
+
+/*
+  #include <utility>  // std::forward
+
+  class Myclass{};
+
+  void foo(Myclass&){
+    std::cout << "foo(Myclass&)\n";
+  }
+
+  void foo(const Myclass&){
+    std::cout << "foo(const Myclass&)\n";
+  }
+
+  void foo(Myclass&&){
+    std::cout << "foo(Myclass&&)\n";
+  }
+
+  void foo(const Myclass&&){
+    std::cout << "foo(const Myclass&&)\n";
+  }
+
+  int main()
+  {
+    Myclass m;
+    const Myclass cm;
+
+    // ---------------------------------------------------------
+
+    // "Myclass{}" is PRValue expression
+    // auto type deduction will be Myclass
+
+    auto&& r1 = Myclass{};  // Myclass&& r1 = Myclass{};
+    foo(std::forward<decltype(r1)>(r1));  // output -> foo(Myclass&&)
+    foo(Myclass{});                       // output -> foo(Myclass&&)
+    
+    // ---------------------------------------------------------
+
+    // "m" is an LValue expression  
+    // auto type deduction will be Myclass& (& - && -> &)
+
+    auto&& r2 = m;  // Myclass& r2 = m;
+    foo(std::forward<decltype(r2)>(r2));  // output -> foo(Myclass&)
+    foo(m);                               // output -> foo(Myclass&)
+
+    // ---------------------------------------------------------
+
+    // "cm" is an LValue expression  
+    // auto type deduction will be const Myclass& (& - && -> &)
+
+    auto&& r3 = cm; // const Myclass& r3 = cm;
+    foo(std::forward<decltype(r3)>(r3));  // output -> foo(const Myclass&)
+    foo(cm);                              // output -> foo(const Myclass&)
+
+    // ---------------------------------------------------------
+
+    Myclass m1;
+    Myclass m2;
+
+    // "std::move(m)" is an XValue expression
+    // auto type deduction will be Myclass
+
+    auto&& r4 = std::move(m1); // Myclass&& r4 = std::move(m);
+    foo(std::forward<decltype(r4)>(r4));    // output -> foo(Myclass&&)
+    foo(std::move(m2));                     // output -> foo(Myclass&&)         
+
+    // ---------------------------------------------------------
+
+    const Myclas cm1;
+    const Myclas cm2;
+
+    // "std::move(cm)" is an XValue expression
+    // auto type deduction will be const Myclass
+
+    auto&& r5 = std::move(cm1);  // const Myclass&& r5 = std::move(cm1);
+    foo(std::forward<decltype(r5)>(r5));  // output -> foo(const Myclass&&)
+    foo(std::move(cm2));                  // output -> foo(const Myclass&&)
+  }
+*/
+
+/*
+  // return value perfect passsing 
+
+  class Myclass{};
+
+  void foo(Myclass&){
+    std::cout << "foo(Myclass&)\n";
+  }
+
+  void foo(const Myclass&){
+    std::cout << "foo(const Myclass&)\n";
+  }
+
+  void foo(Myclass&&){
+    std::cout << "foo(Myclass&&)\n";
+  }
+
+  const Myclass& func_const_lref(const Myclass& str){
+    return str;
+  }
+
+  Myclass& func_non_const_lref(Myclass& str){
+    return str;
+  }
+
+  Myclass&& func_rref(Myclass&& str){
+    return std::move(str);
+  }
+
+  Myclass func_value(const Myclass& str){
+    return str;
+  }
+
+  int main()
+  {
+    Myclass m;
+    const Myclass cm;
+
+    foo(func_rref(Myclass{}));    // output -> foo(Myclass&&)
+    // "func_rref(Myclass{})" is R Value expression,
+    // its data type is Myclass&&
+
+    foo(func_non_const_lref(m));  // output -> foo(Myclass&)
+    // "func_non_const_lref(m)" is L Value expression
+    // its data type is Myclass&
+
+    foo(func_const_lref(cm));     // output -> foo(const Myclass&)
+    // "func_const_lref(cm)" is L Value expression
+    // its data type is const Myclass&
+
+    foo(func_value(m));           // output -> foo(Myclass&&)
+    // "func_value(m)" is R Value expression
+    // its data type is Myclass
+
+    // ---------------------------------------------------------
+
+    // If we want to use the return value of a function
+    // and then pass it to another function without losing
+    // its value category and constness, we can use auto&&
+
+    auto&& r1 = func_rref(Myclass{});  
+    foo(std::forward<decltype(r1)>(r1));  // output -> foo(Myclass&&)
+
+    auto&& r2 = func_non_const_lref(m);
+    foo(std::forward<decltype(r2)>(r2));  // output -> foo(Myclass&)
+
+    auto&& r3 = func_const_lref(cm);
+    foo(std::forward<decltype(r3)>(r3));  // output -> foo(const Myclass&)
+
+    auto&& r4 = func_value(m);
+    foo(std::forward<decltype(r4)>(r4));  // output -> foo(Myclass&&)
+
+    // ---------------------------------------------------------
+  }
+*/
+
+/*
+  #include <utility>  // std::forward
+
+  template <typename T>
+  void func(T&& t)
+  {
+    // --------- Perfect passing scenario 1 ---------
+    foo(bar(std::forward<T>(t)));    
+
+    // --------- Perfect passing scenario 2 ---------
+    auto&& ret = bar(std::forward<T>(t));
+    foo(std::forward<decltype(ret)>(ret));
+  }
+*/
+
+/*
+  #include <vector>
+
+  int main()
+  {
+    using namespace std;
+
+    std::vector<int> ivec(10);  // value initialize > first zero init
+
+    for(auto val : ivec)
+      cout << val << ' ';
+    // output -> 0 0 0 0 0 0 0 0 0 0
+
+    for(auto val : ivec)
+      val = 10;
+    cout << '\n';
+
+    for(auto val : ivec)
+      cout << val << ' ';
+    // output -> 0 0 0 0 0 0 0 0 0 0
+  }
+*/
+
+/*
+  #include <vector>
+
+  // template <>
+  // class Vector{
+  // public:
+  //   class reference{
+  //     operator=(bool){}
+  //     operator bool() const{}
+  //   };
+  //   reference operator[](std::size_t idx){}
+  // };
+
+  int main()
+  {
+    using namespace std;
+
+    std::vector<bool> bvec(10);  // value initialize > first zero init
+
+    for(auto val : bvec)
+      cout << val << ' ';
+    // output -> 0 0 0 0 0 0 0 0 0 0
+
+    for(auto val : bvec)
+      val = true;
+    cout << '\n';
+
+    for(auto val : bvec)
+      cout << val << ' ';
+    // output -> 1 1 1 1 1 1 1 1 1 1
+
+    // ---------------------------------------------------------
+
+    // std::vector<bool> specialization is a partial specialization
+
+    auto x = bvec[0]; 
+    auto y = bvec.operator[](0);
+    // Those 2 lines are equivalent.
+    // "x" and "y"s type is std::vector<bool>::reference (proxy object)
+
+    bvec[4] = false;
+    bvec.operator[](4).operator=(false);
+    // Those 2 lines are equivalent
+
+    auto iter = bvec.begin(); 
+    iter.operator*() = true;  
+    bvec.operator[](0).operator=(true);
+    // Those 2 lines are equivalent.
+
+    // iter's type is std::vector<bool>::iterator
+    // becuase of operator* can not return a reference to bit
+    // it returns a proxy object (std::vector<bool>::reference)
+
+    // ---------------------------------------------------------
+  }
+*/
+
+/*
+  vector<bool> bvec(4);
+
+  // ---------- ranged based for loop 1 ----------
+  for (auto : bvec){}
+
+  // ----------- psudeo code range-based for loop 1 -----------
+  auto&& rng = bvec;
+  auto pos = rng.begin();
+  auto end = rng.end();
+
+  for(; pos != end; ++pos){
+    auto temp = *pos;
+  }
+
+
+  // ---------- ranged based for loop 2 ----------
+  for (auto& x : bvec){}
+
+  // ----------- psudeo code range-based for loop 2 -----------
+  auto&& rng = bvec;
+  auto pos = rng.begin();
+  auto end = rng.end();
+
+  for(; pos != end; ++pos){
+    auto& temp = *pos;
+  }
+
+
+  // ---------- ranged based for loop 3 ----------
+  for (auto&& x : bvec){}
+
+  // ----------- psudeo code range-based for loop 3 -----------
+  auto&& rng = bvec;
+  auto pos = rng.begin();
+  auto end = rng.end();
+
+  for(; pos != end; ++pos){
+    auto&& temp = *pos;
+  }
+*/
+
+/*
+  #include <vector>
+
+  int main()
+  {
+    using namespace std;
+
+    vector<bool> bvec(10);
+
+    for (auto val : bvec)
+      cout << val << ' ';
+    cout << '\n';
+    // output -> 0 0 0 0 0 0 0 0 0 0
+
+    // ranged based for loop implementation
+    auto&& rng = bvec;         
+    auto pos = rng.begin();
+    auto end = rng.end();
+
+    for(; pos != end; ++pos){
+      auto temp = *pos;
+      temp = true;
+    }
+
+    for (auto val : bvec)
+      cout << val << ' ';
+    // output -> 1 1 1 1 1 1 1 1 1 1
+  }
+*/
+
+/*
+  #include <vector>
+
+  int main()
+  {
+    using namespace std;
+
+    vector<bool> bvec(10);
+
+    for (auto val : bvec)
+      cout << val << ' ';
+    cout << '\n';
+    // output -> 0 0 0 0 0 0 0 0 0 0
+
+    for (auto&& val : bvec)
+      val = true;
+
+    for (auto val : bvec)
+      cout << val << ' ';
+    // output -> 1 1 1 1 1 1 1 1 1 1
+  }
+*/
+
+/*
+  #include <vector>
+  #include <string>
+
+  template <typename C, typename T>
+  void Fill(C& con, const T& val)
+  {
+    for(auto& elem : con)
+      elem = val;
+  }
+
+  template <typename C, typename T>
+  void Fill_equivalent(C& con, const T& val)
+  {
+    auto&& rng = con;
+    auto pos = rng.begin();
+    auto end = rng.end();
+
+    for(; pos != end; ++pos){
+      auto& elem = *pos;    
+      // for vector<bool> specialization
+      // *pos(pos.operator() function)'s return type is class type
+      // so "*pos" is an R value expression
+      // L value reference can not bind to R value expression
+      elem = val;
+    }
+  }
+
+  // for proxy classes better using 
+  // auto&& (universal reference) insted of auto&
+  template <typename C, typename T>
+  void Proxy_Fill(C& con, const T& val)
+  {
+    for(auto&& elem : con)
+      elem = val;
+  }
+
+  int main()
+  {
+    // ---------------------------------------------------------
+
+    std::vector<int> ivec{ 1, 2, 3, 4, 5 };
+
+    for (auto val : ivec)
+      std::cout << val << ' ';
+    std::cout << '\n';
+    // output -> 1 2 3 4 5
+
+    Fill(ivec, 100);
+
+    for (auto val : ivec)
+      std::cout << val << ' ';
+    std::cout << '\n';
+    // output -> 100 100 100 100 100
+
+    // ---------------------------------------------------------
+
+    std::vector<std::string> svec{ "hello", "world", "universe" };
+    for (auto val : svec)
+      std::cout << val << ' ';
+    std::cout << '\n';
+    // output -> hello world universe
+
+    Fill(svec, "C++");
+
+    for (auto val : svec)
+      std::cout << val << ' ';
+    std::cout << '\n';
+    // output -> C++ C++ C++
+
+    // ---------------------------------------------------------
+
+    std::vector<bool> bvec{ false, false, false };
+    for (auto val : bvec)
+      std::cout << val << ' ';
+    std::cout << '\n';
+    // output -> 0 0 0
+
+    Fill(bvec, true); // syntax error
+    // error: cannot bind non-const lvalue reference of type 
+    // 'std::_Bit_reference ' to an rvalue of type 
+    // 'std::_Bit_iterator::reference'
+
+    Proxy_Fill(bvec, true);  // VALID
+    for (auto val : bvec)
+      std::cout << val << ' ';
+    std::cout << '\n';
+    // output -> 1 1 1
+
+    // ---------------------------------------------------------
+  }
+*/
+
+/*
+                      ------------------
+                      | decltype(auto) |
+                      ------------------
+*/
+
+/*
+  int& foo();
+  int&& bar();
+
+  int main()
+  {
+    int x = 10;
+
+    decltype(auto) val_1 = x;   
+    // "x" is an identifier
+    // decltype(x) -> int, decltype(auto) -> int
+
+    decltype(auto) val_2 = (x);
+    // "(x)" is an LValue expression, decltype(LValue expr) -> T&
+    // decltype((x)) is int&, decltype(auto) -> int&
+
+    decltype(auto) val_3 = 12;
+    // "12" is PRValue expression, decltype(PRValue expr) -> T
+    // decltype(12) is int, decltype(auto) -> int
+
+    decltype(auto) val_4 = foo();
+    // "foo()" is LValue expression, decltype(LValue expr) -> T&
+    // decltype(foo()) is int&, decltype(auto) -> int&
+
+    decltype(auto) val_5 = bar();
+    // "bar()" is XValue expression, decltype(XValue expr) -> T&&
+    // decltype(bar()) is int&&, decltype(auto) -> int&&
+
+    int* ptr = &x;
+
+    decltype(auto) val_6 = *ptr;
+    // "*ptr" is an LValue expression, decltype(LValue expr) -> T&
+    // decltype(*ptr) is int&, decltype(auto) -> int&
+  }
+*/
+
+/*
+  // https://www.scs.stanford.edu/~dm/blog/decltype.html
+
+  decltype(auto) fn_A(int i)
+  {
+    return i;
+    // "i" is an identifier
+    // decltype(i) is int, decltype(auto) -> int
+  }
+
+  decltype(auto) fn_B(int i)
+  {
+    return (i);
+    // "(i)" is an expression, decltype(LValue expr) -> T&
+    // decltype((m)) is int&, decltype(auto) -> int&
+
+    // returning a reference to automatic storage duration object
+    // undefined behavior(ub)
+  }
+
+  decltype(auto) fn_C(int i)
+  {
+    return (i+1);
+    // "(i + 1)" is an expression, decltype(PRValue expr) -> T
+    // decltype((i + 1)) is int, decltype(auto) -> int
+  }
+
+  decltype(auto) fn_D(int i)
+  {
+    return i++;
+    // "i++" is an expression, decltype(PRValue expr) -> T
+    // decltype(i++) is int, decltype(auto) -> int
+  }
+
+  decltype(auto) fn_E(int i)
+  {
+    return ++i;
+    // "++i" is an expression, decltype(LValue expr) -> T&
+    // decltype(++i) is int&, decltype(auto) -> int&
+
+    // returning a reference to automatic storage duration object
+    // undefined behavior(ub)
+  }
+
+  decltype(auto) fn_F(int i)
+  {
+    return (i >= 0 ? i : 0);
+    // ternary operators 3rd operand "0" is PRValue expression
+    // "(i >= 0 ? i : 0)" is also PRValue expression
+    // decltype(PRValue expr) -> T
+    // decltype((i >= 0 ? i : 0)) is int, decltype(auto) -> int
+  }
+
+  decltype(auto)
+  fn_G(int i, int j)
+  {
+    return i >= j ? i : j;
+    // ternary operators 2nd and 3rd operands are LValue expressions
+    // "(i >= j ? i : j)" is also LValue expression
+    // decltype(LValue expr) -> T&
+    // decltype((i >= j ? i : j)) is int&, decltype(auto) -> int&
+
+    // returning a reference to automatic storage duration object
+    // undefined behavior(ub)
+  }
+
+  struct S {
+    int i = 0;
+  };
+
+  decltype(auto) fn_H()
+  {
+    return (S{});
+    // "(S{})" is an expression, decltype(PRValue expr) -> T
+    // decltype((S{})) is struct S, decltype(auto) -> struct S
+  }
+
+  // reaching R Value class objects non-static data members
+  // is XValue expression
+  decltype(auto) fn_I()
+  {
+    return (S{}.i);
+    // "(S{}.i)" is an expression, decltype(XValue expr) -> T&&
+    // decltype((S{}.i)) is int&&, decltype(auto) -> int&&
+
+    // returning a reference to automatic storage duration object's
+    // non-static data member -> undefined behavior(ub)
+  }
+*/
+
+/*
+  #include <utility>  // std::forward
+
+  // returning foo's return value as perfectly forwarded
+  // to the caller of func
+
+  template <typename T>
+  decltype(auto) func(T&& t)
+  {
+    return foo(std::forward<T>(t));
+  }
+*/
+
+// Lesson 5 - 01:59:45
