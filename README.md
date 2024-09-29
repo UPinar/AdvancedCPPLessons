@@ -26,3 +26,4 @@
   - perfect forwarding
     - `auto&&`
     - `decltype(auto)`
+  - ref qualifier
