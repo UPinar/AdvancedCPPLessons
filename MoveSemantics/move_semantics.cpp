@@ -2703,16 +2703,666 @@
 */
 
 /*
+  // ---- perfect returning ----
+
   #include <utility>  // std::forward
 
   // returning foo's return value as perfectly forwarded
   // to the caller of func
 
   template <typename T>
-  decltype(auto) func(T&& t)
+  decltype(auto) func(T&& val)
   {
-    return foo(std::forward<T>(t));
+    return foo(std::forward<T>(val));
+  }
+
+  // std::invoke() global function inside <functional> module
+
+  template <typename... Args>
+  decltype(auto) func_2(Args&&... args)
+  {
+    return foo(std::forward<Args>(args)...);
   }
 */
 
-// Lesson 5 - 01:59:45
+/*
+  // ---- perfect returning with lambda expression----
+  int main()
+  {
+    // using trailing return type syntax
+    auto fn = [](auto&& r)-> decltype(auto){
+      return foo(std::forward<decltype(r)>(r));  
+    };
+  }
+*/
+
+/*
+  // ---- deferred perfect returning ----
+  #include <type_traits>
+
+  template <typename Func, typename... Args>
+  decltype(auto) call(Func f, Args&&... args)
+  {
+    decltype(auto) ret{ f(std::forward<Args>(args)...) };
+
+    // "ret" is an identifier and its data type can be 
+    // - LValue reference type
+    // - RValue reference type
+    // - non-reference type
+
+
+    // `if constexpr (std::is_rvalue_reference_v<decltype(ret)>)`
+    //  --------------------------------------------------------
+    // decltype(ret) -> decltype(identifier) 
+    // if ret is LValue reference type(&)     -> T&
+    // if ret is RValue reference type(&&)    -> T&&
+    // if ret is non-reference type           -> T
+
+
+    // ---- if ret's data type is R value reference type ----
+    // inside return statement "std::move(ret)" is an expression
+    // decltype(auto) needs to return RValue reference type to caller
+    // for expressions decltype(auto)'s type will be the same as
+    // decltype(expression)'s type and
+    // decltype(XValue expression)'s type is T&&
+    // "std::move(ret)" is an XValue expression
+
+    // ---- if ret's data type is L value reference type ----
+    // inside return statement, "ret" is an identifier
+    // decltype(auto) needs to return LValue reference type to caller
+    // for identifiers, decltype(auto)'s type will be
+    // identifiers declaration type
+    // if ret's declaration type T& -> decltype(auto)'s type will be T&
+
+    // ---- if ret's data type is non-reference type(plain value) ----
+    // inside return statement, "ret" is an identifier
+    // decltype(auto) needs to return non-reference type to caller
+    // for identifiers decltype(auto)'s type will be 
+    // identifiers declaration type
+    // if ret's declaration type T -> decltype(auto)'s type will be T
+
+    if constexpr (std::is_rvalue_reference_v<decltype(ret)>)
+      return std::move(ret);
+      // move XValue expression returned by f() to the caller
+    else
+      return ret;
+      // return the plain value or the lvalue reference
+  }
+*/
+
+/*
+  // ---- deferred perfect returning with lambda expression ----
+
+  int main()
+  {
+    auto fn = [](auto func, auto&&... args) -> decltype(auto){
+      decltype(auto) ret{ func(std::forward<decltype(args)>(args)...) };
+
+      if constexpr (std::is_rvalue_reference_v<decltype(ret)>)
+        return std::move(ret);
+      else
+        return ret;
+    };
+  }
+*/
+
+/*
+  #include <vector>
+  #include <string>
+
+  std::vector<std::string> create_svec();
+
+  int main()
+  {
+    const auto& r1 = create_svec();   // life extension
+
+    auto& r2 = create_svec();   // syntax error
+    // error: cannot bind non-const lvalue reference of type 
+    // 'std::vector<std::__cxx11::basic_string<char>>&' to an 
+    // rvalue of type 'std::vector<std::__cxx11::basic_string<char>>'
+
+    std::vector<std::string>&& r3 = create_svec();   // life extension
+  }
+*/
+
+/*
+  #include <vector>
+  #include <string>
+
+  std::vector<std::string> create_svec();
+
+  int main()
+  {
+    const auto& r1 = create_svec().at(0);   // NO life extension
+    // r1, fonksiyonun geri dönüş değerine değil, fonksiyonun
+    // geri döndürdüğü geçici nesnenin üye fonksiyonunun(at()) 
+    // geri dönüş değeri olan referansa bağlanıyor.
+
+    // r1 is not binding to the temporay object, it is binding 
+    // to the return value of the temporary objects member function
+  }
+*/
+
+/*
+  #include <vector>
+
+  class Myclass{
+  public:
+    ~Myclass()
+    {
+      std::cout << "object destructed\n";
+    }
+  private:
+    std::vector<int> ivec{ 1, 2, 3, 4 };
+  };
+  
+  Myclass foo()
+  {
+    return Myclass{};
+  }
+
+  int main()
+  {
+    {
+      const auto& r1 = foo();     // life extension
+      Myclass&& r2 = foo();       // life extension
+      std::cout << "[1] main continues\n";
+    }
+    std::cout << "[2] main continues\n";
+
+    // output -> 
+    // [1] main continues
+    // object destructed
+    // object destructed
+    // [2] main continues 
+  }
+*/
+
+/*
+  #include <vector>
+
+  class Myclass{
+  public:
+    ~Myclass()
+    {
+      std::cout << "object destructed\n";
+    }
+
+    std::vector<int> get_vec() const
+    {
+      return ivec;  // NRVO
+    }
+  private:
+    std::vector<int> ivec{ 1, 2, 3, 4 };
+  };
+  
+  Myclass foo()
+  {
+    return Myclass{};
+  }
+
+  int main()
+  {
+    const auto& r = foo().get_vec();  // NO life extension
+    std::cout << "[1] main continues\n";
+    // output ->
+    // object destructed
+    // [1] main continues
+
+    std::cout << r[0] << '\n';  // undefined behavior(ub)
+    // r becomes a dangling reference
+  }
+*/
+
+/*
+  #include <vector>
+  #include <string>
+
+  std::vector<std::string> create_svec();
+
+  int main()
+  {
+    for (std::string s : create_svec()){
+      // VALID
+    }
+
+    for (char c : create_svec().at(0)){
+      // undefined behavior(ub)
+    }
+
+    // auto&& rg = create_svec().at(0);
+    // // ------> containers lifetime ends here
+    // auto pos = rg.begin();   // rg is a dangling reference (ub)
+    // auto end = rg.end();
+    // for(; pos != end; ++pos)
+    //   char c = *pos;
+
+    for (char c : create_svec()[0]){
+      // undefined behavior(ub)
+    }
+
+    for (char c : create_svec().front()){
+      // undefined behavior(ub)
+    }
+  }
+*/
+
+/*
+  class Myclass{
+  public:
+    std::string get_str() const
+    {
+      return m_str;
+    }
+
+    const std::string& get_str_ref() const
+    {
+      return m_str;
+    }
+  private:
+    std::string m_str;
+  };
+
+  Myclass create_myclass();
+
+  int main()
+  {
+    Myclass m;
+    auto s = m.get_str();               // copy will be done
+    const auto& s2 = m.get_str_ref();   // NO copy will be done
+
+    for (auto c : create_myclass().get_str_ref()){
+      // NO life extension
+      // dangling reference -> undefined behaviour(ub)
+    }
+  }
+*/
+
+/*
+                    -----------------
+                    | ref qualifier |
+                    -----------------
+*/
+
+/*
+  #include <utility>  // std::move
+
+  class Myclass{
+  public:
+    void foo();
+    void bar()&;
+    void baz()&&;
+  };
+
+  int main()
+  {
+    // ---------------------------------------------------------
+
+    Myclass m;
+    m.foo();              // VALID
+    Myclass{}.foo();      // VALID
+    std::move(m).foo();   // VALID
+
+    // ---------------------------------------------------------
+
+    m.bar();             // VALID
+    Myclass{}.bar();     // syntax error
+    // error: passing 'Myclass' as 'this' argument discards qualifiers
+    std::move(m).bar();  // syntax error
+    // error: passing 'std::remove_reference<Myclass&>::type' 
+    // {aka 'Myclass'} as 'this' argument discards qualifiers
+
+    // ---------------------------------------------------------
+    m.baz();             // syntax error
+    // error: passing 'Myclass' as 'this' argument discards qualifiers
+    Myclass{}.baz();     // VALID
+    std::move(m).baz();  // VALID
+
+    // ---------------------------------------------------------
+  }
+*/
+
+/*
+  #include <utility>  // std::move
+
+  class Myclass{
+  public:
+    // void foo(); // syntax error
+    void foo()& 
+    {
+      std::cout << "foo()&\n";
+    }
+
+    void foo()&&
+    {
+      std::cout << "foo()&&\n";
+    }
+
+    void foo() const&
+    {
+      std::cout << "foo() const&\n";
+    }
+
+    void foo() const &&
+    {
+      std::cout << "foo() const&&\n";
+    }
+  };
+
+  int main()
+  {
+    Myclass m;
+    const Myclass cm;
+
+    m.foo();              // output -> foo()&
+    cm.foo();             // output -> foo() const&
+
+    Myclass{}.foo();      // output -> foo()&&
+    std::move(m).foo();   // output -> foo()&&
+    std::move(cm).foo();  // output -> foo() const&&
+  }
+*/
+
+/*
+  #include <string>
+
+  void foo(bool)
+  {
+    std::cout << "foo(bool)\n";
+  }
+
+  void foo(std::string)
+  {
+    std::cout << "foo(std::string)\n";
+  }
+
+  std::string get_str()
+  {
+    return "hello";
+  }
+
+  int main()
+  {
+    foo((get_str() == "hello"));  // output -> foo(bool)
+
+
+    foo(get_str() = "hello");           // output -> foo(std::string)
+    foo(get_str().operator=("hello"));  // output -> foo(std::string)
+    // Those 2 lines are equivalent.
+
+    // standart libraries standart classes operator() functions
+    // are not ref qualified. (returns a reference to the object)
+    // returns *this
+  }
+*/
+
+/*
+  class Myclass{
+  public:
+    void func()&;
+
+    Myclass& operator=(const Myclass&)& = default;
+  };
+
+  int main()
+  {
+    Myclass mx;
+
+    mx.func();              // VALID
+    Myclass{}.func();       // syntax error
+
+    mx = Myclass{};         // VALID
+    Myclass{} = mx;         // syntax error  
+    Myclass{} = Myclass{};  // syntax error
+  }
+*/
+
+/*
+  class Myclass{
+  public:
+    Myclass(const Myclass&) = default;
+    Myclass(Myclass&&) = default;
+
+    Myclass& operator=(const Myclass& str) & = default;
+    Myclass& operator=(Myclass&& str) & = default;
+  };
+
+  Myclass foo();
+
+  int main()
+  {
+    foo() = foo();  // syntax error
+    // error: passing 'Myclass' as 'this' argument discards qualifiers 
+  }
+*/
+
+/*
+  #include <optional>
+  #include <string>
+
+  std::optional<std::string> foo(){}
+
+  int main()
+  {
+    if (foo() = "hello")  // VALID
+      ;
+
+    if (foo() == "hello") // VALID
+      ;
+  }
+*/
+
+/*
+  #include <string>
+  #include <utility>  // std::forward
+
+  class City{
+  public:
+    City(const std::string& name) : m_name(name){}
+
+    std::string get_name()&&  // will be called for R value objects
+    {
+      std::cout << "get_name() && ";
+      return std::move(m_name);
+    }
+
+    const std::string& get_name() const&
+    {
+      std::cout << "get_name() const& ";
+      return m_name;
+    }
+
+    const std::string& get_name() &
+    {
+      std::cout << "get_name() & ";
+      return m_name;
+    }
+
+  private:
+    std::string m_name;
+  };
+
+  template <typename T>
+  void foo(T&& t)
+  {
+    auto name = std::forward<T>(t).get_name();
+    std::cout << name << '\n';
+  }
+
+  int main()
+  {
+    City c("Constantinople");   
+    const City c_c("Istanbul");  
+
+    foo(c);                   // output -> get_name() & Constantinople
+    foo(c_c);                 // output -> get_name() const& Istanbul
+    foo(City{"New York"});    // output -> get_name() && New York
+  }
+*/
+
+/*
+  template <typename T>
+  void func(const T&&) {} 
+  // It is not a universal reference, it is const R value reference
+
+  class Myclass{};
+
+  int main()
+  {
+    Myclass m;
+    func(m);  // syntax error
+    // error: cannot bind rvalue reference of type 'const Myclass&&' 
+    // to lvalue of type 'Myclass'
+  }
+*/
+
+/*
+  #include <vector>
+
+  template <typename Con>
+  void func(Con &x, typename Con::value_type&&);
+  // It is not a universal reference, it is R value reference
+
+  int main()
+  {
+    std::vector<int> ivec;
+    int x{};
+    func(ivec, x);  // syntax error
+    // error: cannot bind rvalue reference of type 
+    // 'std::vector<int>::value_type&&' {aka 'int&&'} to 
+    // lvalue of type 'int'
+  }
+*/
+
+/*
+  #include <vector>
+  #include <string>
+
+  template <typename T>
+  class Stack{
+  public:
+    void push(const T& val)
+    {
+      std::cout << "L value overload\n";
+      m_con.push_back(val);
+    }
+
+    // // not a universal reference, it is R value reference
+    void push(T&& val)  
+    {
+      std::cout << "R value overload\n";
+      m_con.push_back(std::move(val));
+    }
+  private:
+    std::vector<T> m_con;
+  };
+
+  int main()
+  {
+    Stack<std::string> mystack;
+    mystack.push(std::string{"PRValue expression"});
+
+    std::string str{"LValue expression"};
+    mystack.push(str);
+  }
+*/
+
+/*
+  template <typename T>
+  class Myclass{
+  public:
+    template <typename U>
+    void func(U&&);   // universal reference parameter
+  };
+
+  int main()
+  {
+    Myclass<int> mx;
+
+    double dval = 6.7;
+    const double cdval = 12.4;
+
+    mx.func(dval);  // L value
+    mx.func(cdval); // const L value
+    mx.func(10);    // R value
+  }
+*/
+
+/*
+  #include <string>
+  #include <vector>
+
+  // primary template taking a universal reference
+  template <typename Coll, typename T>
+  void insert(Coll&& coll, T&& arg)
+  {
+    std::cout << "primary template for universal reference\n";
+    coll.push_back(std::forward<T>(arg));
+  }
+
+  // full(explicit) specialization for const lvalues of type std::string
+  template <>
+  void insert(std::vector<std::string>& coll, const std::string& arg)
+  {
+    std::cout << "full specialization for type const std::string&\n";
+    coll.push_back(arg);
+  }
+
+  // full specialization for non-const lvalues of type std::string
+  template <>
+  void insert(std::vector<std::string>& coll, std::string& arg)
+  {
+    std::cout << "full specialization for type std::string&\n";
+    coll.push_back(arg);
+  }
+
+  // full specialization for non-const rvalues of type std::string
+  template <>
+  void insert(std::vector<std::string>& coll, std::string&& arg)
+  {
+    std::cout << "full specialization for type std::string&&\n";
+    coll.push_back(std::move(arg));
+  }
+
+  // full specialization for const rvalues of type std::string
+  template <>
+  void insert(std::vector<std::string>& coll, const std::string&& arg)
+  {
+    std::cout << "full specialization for type const std::string&&\n";
+    coll.push_back(std::move(arg));
+  }
+*/
+
+/*
+  template <typename T>
+  void func(T&& t);
+
+  class Myclass{};
+
+  int main()
+  {
+    Myclass m;
+    func(m);  
+    // "m" is L value expression -> T& (T& && -> T&)
+    // func's parameter variable is Myclass&(T&) 
+
+    func<Myclass>(m);  // syntax error
+    // error: cannot bind rvalue reference of type 'Myclass&&' 
+    // to lvalue of type 'Myclass'
+
+    func<Myclass&>(m);  
+    // T's type is Myclass& 
+    // func's parameter variable is (& - && -> &) Myclass&
+
+    func<Myclass&&>(m); // syntax error
+    // T's type is Myclass&&
+    // func's parameter variable is (&& - && -> &&) Myclass&&
+
+    // error: cannot bind rvalue reference of type 'Myclass&&' 
+    // to lvalue of type 'Myclass' 
+
+    func<Myclass&&>(Myclass{}); // VALID
+    // T's type is Myclass&&
+    // func's parameter variable is (&& - && -> &&) Myclass&&
+  }
+*/
