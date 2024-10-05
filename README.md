@@ -31,4 +31,5 @@
   - ref qualifier
   
 ### [Move Semantics and Perfect Forwarding in STL](https://github.com/UPinar/AdvancedCPPLessons/tree/main/STL_MS_PF)
-  - 
+  - move-only types
+  - `std::initializer_list` class template
