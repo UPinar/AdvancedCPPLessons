@@ -29,3 +29,6 @@
     - `auto&&`
     - `decltype(auto)`
   - ref qualifier
+  
+### [Move Semantics and Perfect Forwarding in STL](https://github.com/UPinar/AdvancedCPPLessons/tree/main/STL_MS_PF)
+  - 
