@@ -1,9 +1,9 @@
 #include <iostream>
 
 /*
-                ==============================
-                | Literal Operator Functions |
-                ==============================
+                    ==============================
+                    | Literal Operator Functions |
+                    ==============================
 */
 
 /*
@@ -20,6 +20,7 @@
   - parameter variables of literal operator functions are:
     -> unsigned long long (integral constant)
     -> long double (floating point constant)
+    -> char (character constant)
 
   - literal operator functions needs to be started with "_"(underscore)
 
@@ -42,9 +43,9 @@
 */
 
 /*
-            -------------------------------------
-            | cooked literal operator functions |
-            -------------------------------------
+                -------------------------------------
+                | cooked literal operator functions |
+                -------------------------------------
 */
 
 /*
@@ -115,9 +116,88 @@
 */
 
 /*
-            --------------------------------------------
-            | uncooked(raw) literal operator functions |
-            --------------------------------------------
+  // what if we want to use a string literal as an argument
+  // in cooked literal operator function
+
+  void operator""_dt(const char* p, std::size_t n)
+  {
+    std::puts(p);
+    std::cout << "n = " << n << '\n';
+  }
+
+  int main()
+  {
+    "24-06-1999"_dt;
+    // output ->
+    //  24-06-1999
+    //  n = 10
+  }
+*/
+
+/*
+  constexpr int operator""_i(char c)
+  {
+    return static_cast<int>(c);
+  }
+
+  int main()
+  {
+    using namespace std;
+
+    cout << 'A' << '\n';      // output -> A
+    cout << 'A'_i << '\n';    // output -> 65
+  }
+*/
+
+/*
+  #include <string>
+
+  std::string operator""_ds(const char* p, std::size_t)
+  {
+    return std::string{ p } + p;
+  }
+
+  int main()
+  {
+    using namespace std;
+
+    auto str = "Istanbul"_ds;
+    cout << "(" << str << ")\n";
+    // output -> (IstanbulIstanbul)
+  }
+*/
+
+/*
+  #include <string>
+  #include <vector>
+
+  std::vector<char> operator""_v(const char* p, std::size_t n)
+  {
+    std::vector<char> ret;
+
+    while(*p)
+      ret.push_back(*p++);
+
+    return ret;
+  }
+
+  int main()
+  {
+    auto cvec = "istanbul"_v;
+
+    std::cout << "cvec.size() = " << cvec.size() << '\n';
+    // output -> cvec.size() = 8
+
+    for(const auto& c : cvec)
+      std::cout << c << ' ';
+    // output -> i s t a n b u l
+  }
+*/
+
+/*
+              --------------------------------------------
+              | uncooked(raw) literal operator functions |
+              --------------------------------------------
 */
 
 /*
@@ -186,3 +266,19 @@
   }
 */
 
+/*
+  void operator""_pr(const char* p)
+  {
+    std::cout << p << '\n';
+  }
+
+  int main()
+  {
+    using namespace std;
+
+    34.56_pr;   // output -> 34.56
+    123496_pr;  // output -> 123496
+  }
+*/
+
+// Lesson-7 00:33:44
