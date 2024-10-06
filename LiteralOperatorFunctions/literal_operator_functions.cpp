@@ -1,9 +1,9 @@
 #include <iostream>
 
 /*
-                    ==============================
-                    | Literal Operator Functions |
-                    ==============================
+                  ==============================
+                  | Literal Operator Functions |
+                  ==============================
 */
 
 /*
@@ -24,6 +24,9 @@
 
   - literal operator functions needs to be started with "_"(underscore)
 
+  - literal operator functions should be defined inside a namespace
+    for avoiding ambiguity
+
   - cooked literal operator functions
   -----------------------------------
     -> 123_m 
@@ -39,7 +42,33 @@
     as string literal)
       operator""m(const char* p);
       compiler will call -> operator""m("123");
+*/
 
+/*
+  #include <string>
+
+  namespace Std{
+    inline namespace Literals{
+      inline namespace StringLiterals{
+        std::string operator""s(const char*, std::size_t);
+      }
+    }
+  }
+
+  int main()
+  {
+    "hello"s; // syntax error
+    // error: unable to find string literal operator 'operator""s' 
+    // with 'const char [6]', 'long long unsigned int' arguments
+
+    // because of operator""s is inside a nested namespace
+
+    using namespace std::literals::string_literals;
+    // std::literals namespace is an inline namespace
+    // std::string_literals is an inline namespace and
+    // nested inside std::literals namespace
+    auto str = "hello"s;  // VALID
+  }
 */
 
 /*
@@ -281,4 +310,276 @@
   }
 */
 
-// Lesson-7 00:33:44
+/*
+          -----------------------------------------------
+          | literal operator functions and strong types |
+          -----------------------------------------------
+*/
+
+/*
+  class Meter{
+  public:
+    struct PreventUsage{};
+    Meter(PreventUsage, double dval);
+  private:
+    double m_val;
+  };
+
+  Meter operator ""_m(long double val)
+  {
+    return Meter{ Meter::PreventUsage{}, static_cast<double>(val) };
+  }
+
+  int main()
+  {
+    Meter m = 4.67_m;
+  }
+*/
+
+/*
+              ---------------------------------
+              | raw string literal (reminder) |
+              ---------------------------------
+*/
+
+/*
+  #include <cstdio> // std::puts
+
+  int main()
+  {
+    // hard to read and write
+    // ----------------------------------------------------
+    
+    const char* p = "\"hello world\"";
+    std::puts(p);  // output -> "hello world"
+
+    const char* p2 = "\"hello \\ galaxy\"";
+    std::puts(p2); // output -> "hello \ galaxy"
+    
+    const char* p3 =  "\"day " \
+                      "night\"";
+    std::puts(p3); // output -> "day night"
+  }
+*/
+
+/*
+  #include <string>
+  #include <type_traits>  // std::is_same_v
+
+  int main()
+  {
+    // ----------------------------------------------------
+
+    std::cout << sizeof(R"(hello world)") << '\n';
+    // output -> 12
+    std::cout << sizeof("hello world") << '\n';
+    // output -> 12
+
+    // ----------------------------------------------------
+
+    std::cout << std::boolalpha;
+
+    auto b1 = std::is_same_v<decltype("hey"), const char(&)[4]>;
+    std::cout << b1 << '\n';  // output -> true
+
+    auto b2 = std::is_same_v<decltype(R"(hey)"), const char(&)[4]>;
+    std::cout << b2 << '\n';  // output -> true
+
+    // ----------------------------------------------------
+  }
+*/
+
+/*
+  #include <string>
+
+  int main()
+  {
+    // ----------------------------------------------------
+
+    const char* p = (R"(hello world
+  we are live
+  from Istanbul)");
+
+    std::puts(p);
+
+    // output ->
+    //  hello world
+    //  we are live
+    //  from Istanbul
+
+    // ----------------------------------------------------
+
+    const char* p2 = R"(hello world)";
+    // delimiter beginning ==> "(
+    // delimiter ending    ==> )"
+
+    std::puts(p2);  // output -> hello world
+
+    const char* p3 = R"del("(hello world)")del";
+    // delimiter beginning ==> "del(
+    // delimiter ending    ==> )del"
+
+    std::puts(p3);  // output -> "(hello world)"
+
+    // ----------------------------------------------------
+  }
+*/
+
+/*
+                        ---------------
+                        | std::quoted |
+                        ---------------
+*/
+
+/*
+  #include <iomanip>      // std::quoted
+  #include <type_traits>  // std::is_same_v
+
+  int main()
+  {
+    auto str = std::quoted("hello"); 
+    // std::quoted function's return type is unspecified
+
+    constexpr auto b = std::is_same_v<decltype(str), std::string>;
+    std::cout << std::boolalpha << b << '\n'; // output -> false
+  }
+*/
+
+/*
+  #include <iomanip>  // std::quoted
+
+  int main()
+  {
+    using namespace std;
+
+    cout << quoted("hello") << '\n';  
+    // output -> "hello"
+
+    cout << quoted("\"hello\"") << '\n';  
+    // output -> "\"hello\""
+
+    cout << quoted(R"("istanbul" "ankara" "izmir")") << '\n';
+    // output -> "\"istanbul\" \"ankara\" \"izmir\""
+  }
+*/
+
+/*
+  #include <iomanip>  // std::quoted
+  #include <sstream>  // std::ostringstream
+
+  int main()
+  {
+    using namespace std;
+
+    // ----------------------------------------------------
+
+    ostringstream oss_1;
+    oss_1 << "\"Istanbul\"";
+
+    cout << "|" << oss_1.str() << "|\n";  
+    // output -> |"Istanbul"|
+
+    // ----------------------------------------------------
+
+    ostringstream oss_2;
+    oss_2 << quoted("\"Istanbul\"");
+
+    cout << "|" << oss_2.str() << "|\n";
+    // output -> |"\"Istanbul\""|
+
+    // ----------------------------------------------------
+  }
+*/
+
+/*
+  #include <iomanip>  // std::quoted
+  #include <sstream>  // std::ostringstream
+
+  int main()
+  {
+    using namespace std;
+
+    // "*" character is being used as delimiter
+    // ----------------------------------------------------
+
+    ostringstream oss;
+    oss << quoted("istanbul", '*');
+    cout << oss.str() << '\n';  
+    // output -> "*istanbul*"
+
+    // ----------------------------------------------------
+
+    ostringstream oss2;
+    oss2 << quoted("*istanbul* *ankara*", '*');
+    cout << oss2.str() << '\n';  
+    // output -> *\*istanbul\* \*ankara\**
+
+    // ----------------------------------------------------
+  }
+*/
+
+/*
+  #include <iomanip>  // std::quoted
+  #include <sstream>  // std::ostringstream
+
+  int main()
+  {
+    using namespace std;
+
+    // "*" character is being used as delimiter
+    // "_" character is being used as escape character
+
+    ostringstream oss;
+    oss << quoted("*istanbul* *ankara*", '*', '_');
+
+    cout << oss.str() << '\n';  
+    // output -> *_*istanbul_* _*ankara_**
+  }
+*/
+
+/*
+  #include <sstream>  // std::istringstream
+  #include <iomanip>  // std::quoted
+
+  int main()
+  {
+    using namespace std;
+
+    // ----------------------------------------------------
+
+    istringstream iss{"\"istanbul\""};
+    string city;
+
+    iss >> city;
+    cout << city << '\n';  
+    // output -> "istanbul"
+
+    // ----------------------------------------------------
+
+    istringstream iss2{"\"istanbul\""};
+    string city2;
+
+    iss2 >> quoted(city2);
+    cout << city2 << '\n';  
+    // output -> istanbul
+
+    // ----------------------------------------------------
+  }
+*/
+
+/*
+  #include <sstream>  // std::istringstream
+  #include <iomanip>  // std::quoted
+
+  int main()
+  {
+    using namespace std;
+
+    istringstream iss{"*istanbul*"};
+    string city;
+
+    iss >> quoted(city, '*');
+    cout << city << '\n'; 
+    // output -> istanbul
+  }
+*/

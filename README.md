@@ -40,3 +40,5 @@
 ### [Literal Operator Functions](https://github.com/UPinar/AdvancedCPPLessons/tree/main/LiteralOperatorFunctions)
   - cooked literal operator functions
   - uncooked literal operator functions
+  - raw string literal (reminder)
+  - `std::quoted` (reminder)
