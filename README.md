@@ -40,5 +40,7 @@
 ### [Literal Operator Functions](https://github.com/UPinar/AdvancedCPPLessons/tree/main/LiteralOperatorFunctions)
   - cooked literal operator functions
   - uncooked literal operator functions
-  - raw string literal (reminder)
-  - `std::quoted` (reminder)
+  - raw string literal
+  - `std::quoted`
+
+### [`std::string_view` (C++17)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/String_View)
