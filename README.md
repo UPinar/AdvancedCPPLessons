@@ -33,3 +33,10 @@
 ### [Move Semantics and Perfect Forwarding in STL](https://github.com/UPinar/AdvancedCPPLessons/tree/main/STL_MS_PF)
   - move-only types
   - `std::initializer_list` class template
+  - `std::remove` && `std::remove_if` algorithms
+  - `std::move` && `std::move_backward` algorithms
+  - `std::move_iterator` iterator adaptor
+  
+### [Literal Operator Functions](https://github.com/UPinar/AdvancedCPPLessons/tree/main/LiteralOperatorFunctions)
+  - cooked literal operator functions
+  - uncooked literal operator functions
