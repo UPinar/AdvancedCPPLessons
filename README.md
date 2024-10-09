@@ -48,3 +48,6 @@
 
 ### [Vocabulary Types (C++17)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/VocabularyTypes)
   - `std::optional` class template
+  - `std::variant` variadic class template
+    - `std::monostate` class
+    - `std::visit` variadic function templace
