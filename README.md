@@ -30,7 +30,7 @@
     - `decltype(auto)`
   - ref qualifier
   
-### [Move Semantics and Perfect Forwarding in STL](https://github.com/UPinar/AdvancedCPPLessons/tree/main/ms_pf_stl)
+### [Move Semantics and Perfect Forwarding in STL](https://github.com/UPinar/AdvancedCPPLessons/tree/main/move_semantic_perfect_forwarding_in_standart_library)
   - move-only types
   - `std::initializer_list` class template
   - `std::remove` && `std::remove_if` algorithms
