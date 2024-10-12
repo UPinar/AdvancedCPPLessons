@@ -51,3 +51,6 @@
   - `std::variant` variadic class template
     - `std::monostate` class
     - `std::visit` variadic function templace
+    - overloader idiom
+  - `std::any` class
+    - `std::any_cast` function template

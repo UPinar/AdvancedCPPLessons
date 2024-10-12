@@ -78,7 +78,7 @@
 */
 
 /*
-  // MANDATORY COPY ELISION - SENERYO 1:
+  // MANDATORY COPY ELISION - SENARYO 1:
   // ------------------------------------------------
   // bir fonksiyonun parametresi bir sınıf türünden ise
   // o fonksiyonu bir temporary object ile çağırmak.
@@ -111,7 +111,7 @@
 */
 
 /*
-  // MANDATORY COPY ELISION - SENERYO 2:
+  // MANDATORY COPY ELISION - SENARYO 2:
   // ------------------------------------------------
   // fonksiyonun return ifadesinin(expression)
   // bir temporary object olması.
@@ -880,13 +880,13 @@
     // output ->
     //  Myclass(int)
     //  ~Myclass() - destructor
-    // NRVO (Copy Ellision) can be applied here
+    // NRVO (Copy Elision) can be applied here
 
     auto mx1_2 = f1_2(5);
     // output ->
     //  Myclass(int)
     //  ~Myclass() - destructor
-    // NRVO (Copy Ellision) can be applied here
+    // NRVO (Copy Elision) can be applied here
 
     // -----------------------------------------------------------------
     auto mx2 = f2(20);
@@ -908,7 +908,7 @@
     // output ->
     // Myclass(int)
     // ~Myclass() - destructor
-    // NRVO (Copy Ellision) can be applied here 
+    // NRVO (Copy Elision) can be applied here 
 
     auto mx3_2 = f3(5);
     // output ->
@@ -921,7 +921,7 @@
     // output ->
     // Myclass(int)
     // ~Myclass() - destructor
-    // NRVO (Copy Ellision) can be applied here
+    // NRVO (Copy Elision) can be applied here
 
     auto mx4_2 = f4(5);
     // output ->
@@ -936,13 +936,13 @@
     // output ->
     //  Myclass(int)
     //  ~Myclass() - destructor
-    // NRVO (Copy Ellision) can be applied here
+    // NRVO (Copy Elision) can be applied here
 
     auto mx5_2 = f5(20);
     // output ->
     //  Myclass(int)
     //  ~Myclass() - destructor
-    // NRVO (Copy Ellision) can be applied here
+    // NRVO (Copy Elision) can be applied here
 
     // -----------------------------------------------------------------
   }
@@ -959,7 +959,7 @@
     force_nrvo(force_nrvo&&);         // declared but not defined
   };
 
-  // when copy ellision (NRVO) is applied,
+  // when copy elision (NRVO) is applied,
   // copy or move constructor will not be called
   // LINK Time error will happen if NRVO is not applied
 */
