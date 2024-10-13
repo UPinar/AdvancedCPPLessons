@@ -54,3 +54,7 @@
     - overloader idiom
   - `std::any` class
     - `std::any_cast` function template
+  
+### [Class Template Argument Deduction(CTAD) (C++17)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/class_template_argument_deduction)
+  - class template argument deduction
+  - deduction guides
