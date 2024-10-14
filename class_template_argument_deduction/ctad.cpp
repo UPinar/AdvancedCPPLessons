@@ -617,4 +617,592 @@
   }
 */
 
-// Lesson_10 : 01:37:00
+/*
+                      --------------------
+                      | Deduction Guides |
+                      --------------------
+*/
+
+/*
+  template<typename T>
+  class TypeTeller;
+  // foward declaration of TypeTeller class (incomplete type)
+
+  template <typename T>
+  void func(T&&)
+  {
+    TypeTeller<T>{};
+    // can not create an object of incomplete type
+    // but this object will tell T's type in the error message
+  }
+
+  int main()
+  {
+    func(12);  
+    // error: invalid use of incomplete type 'class TypeTeller<int>'
+    // T -> int
+    // "func" function's parameter variable's type is int&&
+
+    int ival = 10;
+    func(ival);
+    // error: invalid use of incomplete type 'class TypeTeller<int&>'
+    // T -> int&
+    // "func" function's parameter variable's type is int&
+
+    func<int&&>(10);
+    // T -> int&&(explicit)
+    // "func" function's parameter variable's type is int&&
+  }
+*/
+
+/*
+  template<typename T>
+  class TypeTeller;
+
+  template <typename T>
+  class AClass{
+  public:
+    AClass(const T&)
+    {
+      TypeTeller<T>{};
+    }
+  private:
+    T m_x;
+  };
+
+  template <typename T>
+  class BClass{
+  public:
+    BClass(T&)
+    {
+      TypeTeller<T>{};
+    }
+  private:
+    T m_x;
+  };
+
+  int main()
+  {
+    // ---------------------------------------------------
+
+    AClass a1{"hello"};
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<char [6]>'
+    // T -> char[6]
+
+    // ---------------------------------------------------
+
+    BClass b1{"hello"};
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<const char [6]>'
+    // T -> const char[6]
+
+    // ---------------------------------------------------
+  }
+*/
+
+/*
+  template <typename T>
+  class Myclass{
+  public:
+    Myclass(T& r) : m_x(r) {} 
+  private:
+    T m_x;
+  };
+
+  int main()
+  {
+    // ---------------------------------------------------
+    
+    Myclass m1{"hello"};  // syntax error
+    // error: array used as initializer
+    // T -> const char[6]
+
+    // T'nin çıkarımı const char[6] olduğu için, diziye dizi 
+    // ile ilk değer vermek sentaks hatası oluşturur.
+    // fonksiyonun parametre değişkeninin referans olmasını istiyoruz
+    // fakat diziler için array decay uygulanmasını da istiyoruz.
+
+    // ---------------------------------------------------
+
+    int a[5]{};
+    Myclass m2(a);        // syntax error
+    // error: array used as initializer
+    // T -> int[5]
+
+    // ---------------------------------------------------
+  }
+*/
+
+/*
+  template <typename T>
+  class TypeTeller;
+
+  template <typename T>
+  class Myclass{
+  public:
+    Myclass(const T& r) : m_x(r) 
+    {
+      TypeTeller<T>{};
+    } 
+  private:
+    T m_x;
+  };
+
+
+  template <typename T>
+  Myclass(T) -> Myclass<T>;
+  // T'nin bir dizi türü olması durumunda,
+  // T türünün çıkarımı pointer türü olarak yapılacak.
+
+  int main()
+  {
+    int a[40];
+
+    Myclass m1(a);  // VALID
+    // error: invalid use of incomplete type 'class TypeTeller<int*>'
+    // T -> int*
+  }
+*/
+
+/*
+  template <typename T>
+  class TypeTeller;
+
+  template <typename T>
+  class Myclass{
+  public:
+    Myclass(T) { TypeTeller<T>{}; }
+  };
+
+  template <typename T>
+  Myclass(T) -> Myclass<T&>;
+
+  int main()
+  {
+    int ival{};
+    Myclass m1(ival);
+    // error: invalid use of incomplete type 'class TypeTeller<int&>'
+
+    // "ival"'s data type is int, 
+    // because of the deduction guide, T's type will become int&
+    // "m1" data type is Myclass<int&>
+  }
+*/
+
+/*
+  template <typename T>
+  class TypeTeller;
+
+  template <typename T>
+  class Myclass{
+  public:
+    Myclass(T) { TypeTeller<T>{}; }
+  };
+
+  Myclass(char)     -> Myclass<long>;
+  Myclass(short)    -> Myclass<long>;
+  Myclass(int)      -> Myclass<long>;
+  Myclass(unsigned) -> Myclass<long>;
+
+  int main()
+  {
+    // ---------------------------------------------------
+
+    Myclass m1(5.6);
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<double>'
+    // T -> double
+
+    // ---------------------------------------------------
+
+    Myclass m2('A');
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<long int>'
+    // T -> long
+
+    Myclass m3(10);
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<long int>'
+    // T -> long
+
+    Myclass m4(10U);
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<long int>'
+    // T -> long
+
+    // ---------------------------------------------------
+  }
+*/
+
+/*
+  #include <concepts>
+
+  template <typename T>
+  class TypeTeller;
+
+  template <typename T>
+  class Myclass{
+  public:
+    Myclass(T) { TypeTeller<T>{}; }
+  };
+
+  template <std::integral T>
+  Myclass(T) -> Myclass<unsigned long long>;
+
+  int main()
+  {
+    // ---------------------------------------------------
+
+    Myclass m1(5.6);
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<double>'
+    // T -> double
+
+    // ---------------------------------------------------
+
+    Myclass m2('A');
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<long long unsigned int>'
+    // T -> unsigned long long
+
+    Myclass m3(10);
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<long long unsigned int>'
+    // T -> unsigned long long
+
+    Myclass m4(22U);
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<long long unsigned int>'
+    // T -> unsigned long long
+
+    Myclass m5(33LL);
+    // error: invalid use of incomplete type 
+    // 'class TypeTeller<long long unsigned int>'
+    // T -> unsigned long long
+
+    // ---------------------------------------------------
+  }
+*/
+
+/*
+  // even if we pass a pointer type as an argument (const char*)
+  // we don't want the function's parameter variable type 
+  // to be a pointer we wanted its type to be std::string
+
+  #include <string>
+
+  template <typename T>
+  class Myclass{
+  public:
+    Myclass(T) {}
+  };
+
+  Myclass(const char*) -> Myclass<std::string>;
+
+  int main()
+  {
+    Myclass m1{ "hello" };
+    // m1's data type is Myclass<std::string
+  }
+*/
+
+/*
+  #include <utility> // std::pair
+
+  template <typename T, typename U>
+  class Pair{
+  public:
+    Pair(const T& t, const U& u) : m_first(t), m_second(u) {}
+  private:
+    T m_first;
+    U m_second;
+  };
+
+  template <typename T, typename U>
+  Pair(T, U) -> Pair<T, U>;
+
+  // because of this deduction guide,
+  // when we pass an array as an argument
+  // the deduction will be applied as a pointer type
+*/
+
+/*
+  #include <tuple>
+
+  template <typename... Args>
+  class Tuple{
+  public:
+    constexpr Tuple(const Args&... args); 
+    // takes arguments by-reference.
+
+    template <typename... UArgs>
+    constexpr Tuple(UArgs&&... args);
+  };
+
+  template <typename... Args>
+  Tuple(Args...) -> Tuple<Args...>; 
+  // deduce argument types by-value.
+
+  int main()
+  {
+    Tuple t1{ 10, 20.5, "hello" };
+    // t1's data type is Tuple<int, double, const char*>
+  }
+*/
+
+/*
+  #include <type_traits>  // std::common_type_t
+  #include <string>
+
+  template <typename T>
+  struct Sum{
+    T m_value;
+
+    template <typename ...Types>
+    Sum(Types&&... args) : m_value{ (args + ...) } {}
+    // "(args + ...)" -> fold expression
+  };
+
+  template <typename ...Types>
+  Sum(Types&&... ts) -> Sum<std::common_type_t<Types...>>;
+
+  int main()
+  {
+    Sum s1{ 1u, 2.0, 3, 4.5f };
+    // s1's data type is Sum<double>
+
+    Sum s2{ std::string{ "hello" }, "world"};
+    // s2's data type is Sum<std::string>
+
+    std::cout << s1.m_value << '\n';  // output -> 10.5
+    std::cout << s2.m_value << '\n';  // output -> helloworld
+  }
+*/
+
+/*
+  #include <iterator>
+  #include <vector>
+
+  template <typename T>
+  class Vector{
+    Vector(T, T) {}
+  };
+
+  // deduction guide
+  template<typename Iterator>
+  Vector(Iterator, Iterator) -> 
+        Vector<typename std::iterator_traits<Iterator>::value_type>;
+
+  int main()
+  {
+    int arr[10]{ 1, 2, 3, 4 };
+
+    std::vector vec(std::begin(arr), std::end(arr));
+    // std::begin and std::end functions return pointers
+    // but "vec"'s data type is std::vector<int>
+    // because of the deduction guide
+  }
+*/
+
+/*
+  #include <string>
+  #include <typeinfo>
+
+  template <typename T>
+  struct MyStruct{
+    T str;
+  };
+
+  MyStruct(const char*) -> MyStruct<std::string>;
+
+  int main()
+  {
+    std::cout << std::boolalpha;
+
+    MyStruct m1{ "hello" };
+    // "m1"'s data type is MyStruct<std::string>
+
+    std::cout << (typeid(m1) == typeid(MyStruct<std::string>));
+    // output -> true
+  }
+*/
+
+/*
+  // MyStruct is an aggregate type
+  template <typename T>
+  struct MyStruct{
+    T m_val;
+  };
+
+  int main()
+  {
+    // ---------------------------------------------------
+
+    MyStruct<int> m1 = 10;  // syntax error
+    // error: conversion from 'int' to 
+    // non-scalar type 'MyStruct<int>' requested
+
+    // aggreate types can not be initialized like this.
+
+    // ---------------------------------------------------
+
+    MyStruct<int> m2(10);       // VALID
+    MyStruct<int> m3{ 10 };     // VALID
+    MyStruct<int> m4 = { 10 };  // VALID
+
+    // ---------------------------------------------------
+  }
+*/
+
+/*
+  // MyStruct is an aggregate type
+  template <typename T>
+  struct MyStruct{
+    T m_val;
+  };
+
+  template <typename T>
+  MyStruct(T) -> MyStruct<T>;
+
+  int main()
+  {
+    // ---------------------------------------------------
+
+    MyStruct m1 = { 20 }; // syntax error before C++20
+    // error: no matching function for call to 'MyStruct(int)'
+
+    // ---------------------------------------------------
+
+    MyStruct m2 = { 20 };    // VALID 
+    // using deduction guide before C++20
+
+    // ---------------------------------------------------
+
+    MyStruct m3 = { 30 };       // VALID 
+    // without using deduction guide after C++20
+
+    // ---------------------------------------------------
+  }
+*/
+
+/*
+  #include <string>
+
+  template <typename T>
+  class Myclass{
+  public:
+    Myclass(T param) : m_x(param) {} 
+  private:
+    T m_x;
+  };
+
+  // explicit deduction guide
+  explicit Myclass(const char*) -> Myclass<std::string>;
+
+  int main()
+  {
+    // ---------------------------------------------------
+
+    Myclass m1 = { "hello" }; // syntax error
+    // error: class template argument deduction for 'Myclass<T>' failed: 
+    // explicit deduction guide selected in copy-list-initialization
+
+    // ---------------------------------------------------
+
+    Myclass m2{ "hello" };  // VALID
+    // "m2"'s data type is Myclass<std::string>
+
+    // ---------------------------------------------------
+
+    Myclass m3 = Myclass{ "world" };  // VALID
+    // "m3"'s data type is Myclass<std::string>
+
+    // ---------------------------------------------------
+
+    Myclass m4 = { Myclass{ "galaxy" } };  // VALID
+    // "m4"'s data type is Myclass<std::string>
+
+    // ---------------------------------------------------
+  }
+*/
+
+/*
+  template <typename T>
+  struct MyStruct{
+    MyStruct(T) { std::cout << "MyStuct(T)\n"; } 
+
+    template <typename U>
+    MyStruct(U) { 
+      std::cout << "MyStruct(U), U -> "; 
+      std::cout << typeid(U).name() << '\n';  
+    }
+  };
+
+  // explicit deduction guide
+  template <typename T>
+  explicit MyStruct(T) -> MyStruct<T*>;
+
+  int main()
+  {
+    // ---------------------------------------------------
+
+    MyStruct m1{ 11 };  // output -> MyStruct(U) U -> int
+
+    // because of the value initialization
+    // explicit deduction guide can be used.
+
+    // using the deduction guide, T will be deduce to int*
+    // "m1"'s data type will be MyStruct<int*>
+
+    // we are passing int type to the constructor, as an argument
+    // first constructor can not be called with int type
+    // since it is expecting int* type as an argument
+
+    // so second member template constructor will be called
+    // and U will be deduced to int
+
+    // ---------------------------------------------------
+
+    MyStruct m2 = 22;   // output -> MyStruct(T)
+    // because of deduction guide is explicit, 
+    // it will not become active
+    // when the copy initialization syntax has been used.
+
+    // because of int type is passed as an argument
+    // T will be deduced to int and first constructor will be called
+    // "m2"'s data type is MyStruct<int>
+
+    // ---------------------------------------------------
+
+    int ival = 33;
+    MyStruct m3{ &ival };  // output -> MyStruct(U) U -> int*
+
+    // because of the value initialization
+    // explicit deduction guide can be used.
+
+    // using the deduction guide, T will be deduce to int**
+    // "m3"'s data type will be MyStruct<int**>
+
+    // we are passing int* type to the constructor, as an argument
+    // first constructor can not be called with int* type
+    // since it is expecting int** type as an argument
+
+    // so second member template constructor will be called
+    // and U will be deduced to int*
+
+    // ---------------------------------------------------
+
+    MyStruct m4 = &ival;   // output -> MyStruct(T)
+
+    // because of the deduction guide is explicit
+    // it will not become active
+    // when the copy initialization syntax has been used.
+
+    // because of the int* type is passed as an argument
+    // T will be deduced to int* and first constructor will be called
+    // "m4"'s data type is MyStruct<int*>
+
+    // ---------------------------------------------------
+  }
+*/
