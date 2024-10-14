@@ -421,5 +421,180 @@
   }
 */
 
+/*
+  #include <tuple>
+  #include <vector>
+  #include <string>
+  #include <fstream>    // std::ofstream
+  #include <iomanip>    // std::setw, std::setf
+  #include <algorithm>  // std::sort
 
+  #include "../nutility.h"
 
+  using Person = std::tuple<int, std::string, std::string>;
+
+  int main()
+  {
+    using namespace std;
+
+    ofstream ofs{ "out.txt" };
+    if (!ofs){
+      std::cerr << "out.txt can not created\n";
+      exit(EXIT_FAILURE);
+    }
+
+    ofs.setf(ios::left, ios::adjustfield);
+
+    vector<Person> pvec;
+    pvec.reserve(10'000u);
+
+    for (int i = 0; i < 10'000; ++i){
+      pvec.emplace_back(Irand{ 0, 100'000 }(), 
+                        rname() + ' ' + rfname(),
+                        rtown());
+    }
+
+    std::sort(pvec.begin(), pvec.end());
+
+    for (const auto& [id, name, town] : pvec){
+      ofs << setw(12) << id << '\t' 
+          << setw(24) << name << '\t' 
+          << town << '\n';
+    }
+  }
+*/
+
+/*
+  #include <tuple>  
+  // std::tuple_size_v(metafunction)
+  // std::tuple_element_t(metafunction)
+  // std::get function template
+
+  using tpl_type = std::tuple<int, double, long>;
+
+  int main()
+  {
+    // -----------------------------------------------------
+
+    std::tuple_size<tpl_type>::value; // 3
+    std::tuple_size_v<tpl_type>;      // 3
+    // (compile-time constant)
+
+    // -----------------------------------------------------
+
+    std::tuple_element<0, tpl_type>::type x1{}; // int
+    std::tuple_element_t<0, tpl_type> x2{};     // int
+
+    std::tuple_element<1, tpl_type>::type x3{}; // double
+    std::tuple_element_t<1, tpl_type> x4{};     // double
+
+    std::tuple_element<2, tpl_type>::type x5{}; // long
+    std::tuple_element_t<2, tpl_type> x6{};     // long
+
+    // -----------------------------------------------------
+
+    std::get<0>(tpl_type{ 1, 3.14, 100L }); // 1
+    // std::get is for run-time access
+  }
+*/
+
+/*
+  #include <array>  
+  // std::tuple_element_t, std::tuple_size_v, std::get
+
+  using array_type = std::array<double, 20>;
+
+  int main()
+  {
+    // -----------------------------------------------------
+
+    std::tuple_size_v<array_type>;  // 20
+
+    // -----------------------------------------------------
+
+    std::tuple_element_t<0, array_type> x1{}; // double
+
+    // -----------------------------------------------------
+
+    array_type arr{ 1., 5., 6. };
+    auto first_elem = std::get<0>(arr);
+
+    std::cout << "first_elem = " << first_elem << "\n";  
+    // output -> first_elem = 1
+
+    // -----------------------------------------------------
+  }
+*/
+
+/*
+  --------------------------------------------------------------
+  |                  auto& [ival, str] = t1;                   |
+  --------------------------------------------------------------
+
+  - derleyici, önce bizim doğrudan görmediğimiz bir referans 
+    değişken tanımlar.
+
+  auto& anon_var = t1;
+
+  --------------------------------------------------------------
+
+  - std::tuple_size meta-fonksiyonu ile bu tuple türünün öğe sayısını
+    derleme zamanında kontrol ediyor.
+
+  std::tuple_size_v<std::remove_reference_t<decltype(anon_var)>>;
+
+  --------------------------------------------------------------
+
+  - eğer bu sayı structured binding içinde kullanılan 
+    special identifier sayısına eşit değilse derleyici hata verir.
+
+  --------------------------------------------------------------
+
+  - std::get<> fonksiyonuna çağrılar yaparak tuple'ın öğelerine
+    referans döndürür.
+
+  std::get<0>(t1);
+  std::get<1>(t1);
+
+  --------------------------------------------------------------
+
+  - std::get fonksiyonlarının geri dönüş değerleriyle 
+    std::tuple_element_t türünden gizli değişkenler
+    oluşturur(aynı işlem tekrar yapılmasın diye).
+
+  std::tuple_element_t<0, 
+    std::remove_reference_t<decltype(anon_var)>>& 
+      anon_elem_0 = std::get<0>(t1);
+
+  std::tuple_element_t<1, 
+    std::remove_reference_t<decltype(anonymous_variable)>>& 
+      anon_elem_1 = std::get<1>(t1);
+
+  --------------------------------------------------------------
+*/
+
+/*
+*/
+
+#include <tuple>
+#include <string>
+
+int main()
+{
+  std::tuple t1(444, std::string("hello"));
+  auto& [ival, str] = t1;
+
+  str = "world";
+  std::cout << "ival = " << ival
+            << ", str = " << str << "\n";  // output -> 444
+
+  // -----------------------------------------------------
+
+  // auto& anon_var = t1;
+  // int& anon_elem_0 = std::get<0>(t1);
+  // std::string& anon_elem_1 = std::get<1>(t1);
+
+  // -----------------------------------------------------
+}
+
+// Lesson_11 : 01:01:20

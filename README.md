@@ -1,4 +1,4 @@
-# AdvancedCPPLessons
+<h1 align="center"> AdvancedCPPLessons </h1>
 
 ### [Value Categories](https://github.com/UPinar/AdvancedCPPLessons/tree/main/value_categories)
   - `decltype` specifier
@@ -33,8 +33,8 @@
 ### [Move Semantics and Perfect Forwarding in STL](https://github.com/UPinar/AdvancedCPPLessons/tree/main/move_semantic_perfect_forwarding_in_standart_library)
   - move-only types
   - `std::initializer_list` class template
-  - `std::remove` && `std::remove_if` algorithms
-  - `std::move` && `std::move_backward` algorithms
+  - `std::remove` and `std::remove_if` algorithms
+  - `std::move` and `std::move_backward` algorithms
   - `std::move_iterator` iterator adaptor
   
 ### [Literal Operator Functions](https://github.com/UPinar/AdvancedCPPLessons/tree/main/literal_operator_functions)
@@ -60,4 +60,3 @@
   - deduction guides
 
 ### [Structured Binding (C++17)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/structured_binding)
-  - 
