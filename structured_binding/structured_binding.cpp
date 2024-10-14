@@ -11,6 +11,10 @@
     - for an array
     - for a type that data members are public
     - for a tuple like class (gave tuple interface)
+      -> supporting tuple_size, get, tuple_element functions.
+        - std::array
+        - std::tuple
+        - std::pair
 */
 
 /*
@@ -191,10 +195,231 @@
 */
 
 /*
+  class AClass{
+    int m_a{ 11 };
+    int m_b{ 22 };
+    int m_c{ 33 };
+    friend void foo();
+  };
+
+  void foo()
+  {
+    auto [x, y, z] = AClass{}; // VALID
+  }
+
+  int main()
+  {
+    auto [x, y, z] = AClass{}; // syntax error
+    // error: cannot decompose inaccessible member 
+    // 'AClass::m_a' of 'AClass'
+  }
 */
 
-// Lesson_10 : 03:00:00
+/*
+  #include <string>
 
+  class Myclass{
+  public:
+    std::string m_str1{ "hello" };
+    std::string m_str2{ "world" };
+  };
+
+  int main()
+  {
+    Myclass mx;
+
+    // -----------------------------------------------------
+
+    auto [str1, str2] = mx;             // copy semantics
+
+    std::cout << mx.m_str1.length() << "\n";  // output -> 5
+    std::cout << mx.m_str2.length() << "\n";  // output -> 5
+
+    // -----------------------------------------------------
+
+    auto [str3, str4] = std::move(mx);  // move semantics
+
+    std::cout << mx.m_str1.length() << "\n";  // output -> 0
+    std::cout << mx.m_str2.length() << "\n";  // output -> 0
+
+    // -----------------------------------------------------
+  }
+*/
+
+/*
+  #include <string>
+
+  class Myclass {
+  public:
+    std::string m_str1{ "hello" };
+    std::string m_str2{ "world" };
+  };
+
+  int main()
+  {
+    Myclass mx;
+
+    auto [str1] = mx; // syntax error
+    // error: only 1 name provided for structured binding
+    // note: while 'Myclass' decomposes into 2 elements
+  }
+*/
+
+/*
+  struct Point {
+    int m_x, m_y, m_z;
+  };
+
+  int main()
+  {
+    Point p1{ 1, 2, 3 };
+    Point p2{ 4, 5, 6 };
+
+    auto [a, b, _] = p1; // VALID
+    // "_" is been used as an identifier.
+
+    auto [k, __, ___] = p2; // VALID
+    // "__" and "___" are been used as identifiers.
+  }
+*/
+
+/*
+  #include <utility>  // std::pair
+  #include <string>
+
+  std::pair<std::string, std::string> foo();
+
+  int main()
+  {
+    using namespace std;
+
+    string str1;
+    string str2;
+    // str1 and str2 objects default ctor is called.
+
+    auto ps = foo();
+
+    str1 = ps.first;
+    str2 = ps.second;
+    // str1 and str2 objects copy assignment operator is called.
+  }
+*/
+
+/*
+  #include <tuple>  // std::tie
+
+  int main()
+  {
+    using namespace std;
+
+    // -----------------------------------------------------
+
+    tuple<int, double, string> tp1{ 11, 3.14, "hello" };
+    tuple<int, double, string> tp2;
+
+    tp2 = tp1;  // VALID
+
+    // -----------------------------------------------------
+
+    // we can pass reference type to std::tuple and std::pair's
+    // template argument.
+
+    int ival, ival_2;
+    double dval, dval_2;
+    string str, str_2;  
+
+    tuple<int&, double&, string&>{ ival, dval, str } = tp1;
+    std::tie(ival_2, dval_2, str_2) = tp1;
+    // Those 2 lines are equivalent.
+
+    // we basically seperate the tuple's elements to identifiers
+    // (ival, dval, str). Old way of structured binding.
+
+    // -----------------------------------------------------
+  }
+*/
+
+/*
+  #include <utility>  // std::pair
+  #include <tuple>    // std::tie
+
+  std::pair<int, double> foo();
+
+
+  int main()
+  {
+    int ival;
+    double dval;
+
+    std::tie(ival, dval) = foo();
+  }
+*/
+
+/*
+  // set container's insert member function
+
+  #include <set>
+
+  int main()
+  {
+    std::set<int> myset{ 11, 22, 33, 44, 55 };
+
+    auto [iter, success] = myset.insert(66);
+    // insert member function returns a pair<iterator, bool>
+    // if insertion is successful, bool is true and
+    // iterator points to the inserted element.
+
+    // if insertion is not successful, bool is false and
+    // iterator points to the element that is equal to the
+    // element that we want to insert.
+
+    if (success)
+      std::cout << "insertion successful\n";
+    else
+      std::cout << "insertion failed\n";
+    // output -> insertion successful
+  }
+*/
+
+/*
+  // structured binding can be used inside if with initializer syntax
+
+  #include <set>
+
+  int main()
+  {
+    std::set<int> myset{ 11, 22, 33, 44, 55 };
+
+    if (auto [iter, success] = myset.insert(66); success)
+      std::cout << "insertion successful\n";
+    else
+      std::cout << "insertion failed\n";
+
+    // "iter" and "success" identifiers scope is limited to if block.
+  }
+*/
+
+/*
+  // minmax_element algorithm
+
+  #include <vector>
+  #include <string>
+  #include <algorithm>  // std::minmax_element
+
+  #include "../nutility.h"
+
+  int main()
+  {
+    using namespace std;
+
+    vector<string> svec;
+    rfill(svec, 20, rname);
+
+    auto [iter_min, iter_max] = minmax_element(svec.begin(), svec.end());
+    // returns min and max elements' iterators 
+    // as pair<iterator, iterator>
+  }
+*/
 
 
 
