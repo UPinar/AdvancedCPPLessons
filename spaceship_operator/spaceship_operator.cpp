@@ -376,6 +376,309 @@
 */
 
 /*
+  --------------------------------------------------------
+
+  - types that are returned by the spaceship operator
+    strong_ordering 
+      - a > b
+      - a < b
+      - a == b
+
+    weak_ordering 
+      hello     HELLO   (equivalent)
+
+    partial_ordering
+      NAN
+      positive infinity
+      negative infinity
+
+  --------------------------------------------------------
+
+  - values that are returned by the spaceship operator
+
+  strong_ordering::equal
+  strong_ordering::equivalent
+  strong_ordering::greater
+  strong_ordering::less
+
+  weak_ordering::equivalent
+  weak_ordering::greater
+  weak_ordering::less
+
+  partial_ordering::equivalent
+  partial_ordering::greater
+  partial_ordering::less
+  partial_ordering::unordered
+
+  --------------------------------------------------------
+
+  i.e (a <=> b) returns strong_ordering::greater 
+      (a <=> b > 0)  ===> (strong_ordering::greater > 0)
+
+  i.e (a <=> b) returns weak_ordering::less
+      (a <=> b < 0)  ===> (weak_ordering::less < 0)
+
+  --------------------------------------------------------
+
+  - conversion between strong_ordering and weak_ordering
+    and partial_ordering types
+
+    strong_ordering can be converted to weak_ordering and 
+    partial_ordering types
+        strong_ordering ===> weak_ordering
+        strong_ordering ===> partial_ordering
+
+    
+    
 */
 
-// Lesson_11 -> 02:46:00
+/*
+  #include <compare>      // std::compare_three_way_result_t
+  #include <string>
+  #include <type_traits>  // std::is_same_v
+  #include <cmath>        // NAN
+
+  template <typename T, typename U>
+  void print_compare(const T& t, const U& u)
+  {
+    using result_type = std::compare_three_way_result_t<T, U>;
+    std::string stype = typeid(result_type).name();
+
+    std::cout << "compare result_type: " << stype << '\n';
+    auto result = t <=> u;
+
+    std::cout << "result of comparison: ";
+    if (result == 0){
+      if (std::is_same_v<result_type, std::strong_ordering>)
+        std::cout << "equal\n";
+      else
+        std::cout << "equivalent\n";
+    }
+    else if (result > 0)
+      std::cout << "greater\n";
+    else if (result < 0)
+      std::cout << "less\n";
+    
+    else
+      std::cout << "unordered\n";
+  }
+
+  int main()
+  {
+    // --------------------------------------------------------
+
+    print_compare(12, 6);
+    // output ->
+    // compare result_type: struct std::strong_ordering
+    // result of comparison: greater
+
+    print_compare(12, 63);
+    // output ->
+    // compare result_type: struct std::strong_ordering
+    // result of comparison: less
+
+    print_compare(12, 12);
+    // output ->
+    // compare result_type: struct std::strong_ordering
+    // result of comparison: equal
+
+    // --------------------------------------------------------
+
+    print_compare(6.3, 6.3);
+    // output ->
+    // compare result_type: struct std::partial_ordering
+    // result of comparison: equivalent
+
+    print_compare(6.3, 6.41);
+    // output ->
+    // compare result_type: struct std::partial_ordering
+    // result of comparison: less
+
+    print_compare(6.3, NAN); 
+    // output ->
+    // compare result_type: struct std::partial_ordering
+    // result of comparison: unordered
+
+    // --------------------------------------------------------
+  }
+*/
+
+/*
+  #include <string>
+
+  class Person {
+  public:
+    Person(const char* p, int a) : m_name{ p }, m_age{ a } {}
+    std::strong_ordering operator<=>(const Person& other) const
+    {
+      if (auto cmp = m_name <=> other.m_name; cmp != 0)
+        return cmp;
+
+      return m_age <=> other.m_age;
+    }
+    // when 2 std::string objects and 2 ints are compared 
+    // with spaceship operator
+    // both return types are std::strong_ordering
+    // std::strong_ordering can be used instead of auto
+    // for the return type of the operator<=>() function
+
+    // if function's return type is std::weak_ordering
+    // because of strong_ordering can be converted to weak_ordering
+    // no syntax error will occur
+  private:
+    std::string m_name;
+    int m_age;
+  };
+
+  int main()
+  {
+    using namespace std;
+    boolalpha(cout);
+
+    Person p1{"hello", 55};
+    Person p2{"art", 40};
+    Person p3{"art", 23};
+
+    // --------------------------------------------------------
+
+    cout << (p1 < p2) << '\n';        // output -> false
+    cout << (p1 <=> p2 < 0) << '\n';  // output -> false
+    // Those 2 lines are equivalent.
+
+    // --------------------------------------------------------
+
+    cout << (p2 > p3) << '\n';        // output -> true
+    cout << (p2 <=> p3 > 0) << '\n';  // output -> true
+    // Those 2 lines are equivalent.
+
+    // --------------------------------------------------------
+  }
+*/
+
+/*
+  // ------------------- PROMBLEM -------------------
+
+  #include <string>
+
+  class Person {
+  public:
+    Person(const char* p, int a, double w) : 
+        m_name{ p }, m_age{ a }, m_wage{ w } {}
+
+    auto operator<=>(const Person& other) const
+    {
+      if (auto cmp = m_name <=> other.m_name; cmp != 0)
+        return cmp;
+
+      if (auto cmp = m_age <=> other.m_age; cmp != 0)
+        return cmp;
+
+      return m_wage <=> other.m_wage; // syntax error
+      // error: inconsistent deduction for auto return type: 
+      // 'std::strong_ordering' and then 'std::partial_ordering'
+    }
+
+  private:
+    std::string m_name;
+    int m_age;
+    double m_wage;
+  };
+*/
+
+/*
+  // ------------------- SOLUTION 1 -------------------
+
+  class Person_1 {
+  public:
+    Person_1(const char* p, int a, double w) : 
+        m_name{ p }, m_age{ a }, m_wage{ w } {}
+
+    std::partial_ordering operator<=>(const Person_1& other) const
+    {
+      if (auto cmp = m_name <=> other.m_name; cmp != 0)
+        return cmp;
+
+      if (auto cmp = m_age <=> other.m_age; cmp != 0)
+        return cmp;
+
+      return m_wage <=> other.m_wage;
+      // because of std::strong_ordering can be converted to
+      // std::partial_ordering no syntax error will occur
+    }
+
+  private:
+    std::string m_name;     // <=> will return std::strong_ordering
+    int m_age;              // <=> will return std::strong_ordering
+    double m_wage;          // <=> will return std::partial_ordering
+  };
+*/
+
+/*
+  // ------------------- SOLUTION 2 -------------------
+
+  #include <compare>  // std::common_comparison_category
+
+  class Employee {
+  private:
+    std::string m_name;
+    double m_wage;
+  public:
+    // trailing return type
+    auto operator<=>(const Employee& other) const -> 
+        std::common_comparison_category_t<
+              decltype(m_name <=> other.m_name), 
+              decltype(m_wage <=> other.m_wage)>
+    {
+      if (auto cmp = m_name <=> other.m_name; cmp != 0)
+        return cmp;
+
+      return m_wage <=> other.m_wage;
+    }
+  };
+*/
+
+/*
+  // ------------------- SOLUTION 3 -------------------
+
+  #include <compare>  // std::strong_ordering, std::partial_ordering
+  #include <cassert>
+
+  class Employee {
+  private:
+    std::string m_name;
+    double m_wage;
+  public:
+    std::strong_ordering operator<=>(const Employee& other) const 
+    {
+      if (auto cmp = m_name <=> other.m_name; cmp != 0)
+        return cmp;
+
+      auto cmp = m_wage <=> other.m_wage;
+
+      assert(cmp != std::partial_ordering::unordered);
+
+      return  cmp == 0  ? std::strong_ordering::equal : 
+              cmp > 0   ? std::strong_ordering::greater 
+                        : std::strong_ordering::less;
+    }
+  };
+*/
+
+/*
+  // ------------------- SOLUTION 4 -------------------
+  
+  #include <compare>  // std::strong_ordering, std::strong_order
+  class Employee {
+  private:
+    std::string m_name;
+    double m_wage;
+  public:
+    std::strong_ordering operator<=>(const Employee& other) const 
+    {
+      if (auto cmp = m_name <=> other.m_name; cmp != 0)
+        return cmp;
+
+      return std::strong_order(m_wage, other.m_wage);
+    }
+  };
+*/
