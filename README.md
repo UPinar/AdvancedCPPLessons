@@ -61,4 +61,6 @@
 
 ### [Structured Binding (C++17)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/structured_binding)
 
-### [Three-way comparison(spaceship) operator](https://github.com/UPinar/AdvancedCPPLessons/tree/main/spaceship_operator)
+### [Three-way comparison(spaceship) operator (C++20)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/spaceship_operator)
+
+### [Lambda expressions](https://github.com/UPinar/AdvancedCPPLessons/tree/main/lambda_expressions)

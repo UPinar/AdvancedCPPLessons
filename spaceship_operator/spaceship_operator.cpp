@@ -425,11 +425,13 @@
 
     strong_ordering can be converted to weak_ordering and 
     partial_ordering types
-        strong_ordering ===> weak_ordering
-        strong_ordering ===> partial_ordering
+      strong_ordering ===> weak_ordering
+      strong_ordering ===> partial_ordering
 
-    
-    
+    weak_ordering can be converted to partial_ordering type
+      weak_ordering ===> partial_ordering
+
+  --------------------------------------------------------
 */
 
 /*
@@ -681,4 +683,212 @@
       return std::strong_order(m_wage, other.m_wage);
     }
   };
+*/
+
+/*
+  class Myclass {
+  public:
+    constexpr Myclass(int x = 0) : m_x{ x } {}
+    bool operator==(const Myclass&) const;
+  private:
+    int m_x;
+  };
+
+  class Myclass_2 {
+  public:
+    constexpr Myclass_2(int x = 0) : m_x{ x } {}
+    bool operator==(const Myclass_2&) const = default;
+  private:
+    int m_x;
+  };
+
+  int main()
+  {
+    using namespace std;
+
+    // --------------------------------------------------------
+
+    // if there is no problem being operator==() function
+    // to be a constexpr function, compiler will implicitly
+    // define operator==() function as a constexpr function
+
+    // --------------------------------------------------------
+
+    constexpr Myclass m1{ 300 };
+    constexpr Myclass m2{ 400 };
+
+    constexpr auto b1 = m1 == m2;  // syntax error
+    // error: call to non-'constexpr' function 
+    // 'bool Myclass::operator==(const Myclass&) const'
+
+    constexpr Myclass_2 m3{ 300 };
+    constexpr Myclass_2 m4{ 400 };
+
+    constexpr auto b2 = m3 == m4;  // VALID
+
+    // --------------------------------------------------------
+
+    // if comparison of data members is giving a noexcept 
+    // guarantee, when operator==() function is defaulted
+    // compiler will implicitly define operator==() function
+    // as a noexcept function
+
+    // --------------------------------------------------------
+
+    constexpr auto b3 = noexcept(m1 == m2);  // b3 -> false
+
+    constexpr auto b4 = noexcept(m3 == m4);  // b4 -> true
+
+    // --------------------------------------------------------
+  }
+*/
+
+/*
+  class Myclass {
+  public:
+    constexpr Myclass(int x = 0) : m_x{ x } {}
+    [[nodiscard]] auto operator<=>(const Myclass&) const = default;
+  private:
+    int m_x;
+  };
+
+  int main()
+  {
+    using namespace std;
+
+    constexpr Myclass m1{ 300 };
+    constexpr Myclass m2{ 400 };
+
+    // --------------------------------------------------------
+
+    // operator==() function will also have all the attributes 
+    // of the operator<=>() function
+    // i.e [[nodiscard]] attribute
+
+    // --------------------------------------------------------
+
+    m1 <=> m2;
+    // warning: ignoring return value of 
+    // 'constexpr auto Myclass::operator<=>(const Myclass&) const', 
+    // declared with attribute 'nodiscard'
+
+    m1 == m2;
+    // warning: ignoring return value of 
+    // 'constexpr bool Myclass::operator==(const Myclass&) const', 
+    // declared with attribute 'nodiscard'
+
+    // --------------------------------------------------------
+  }
+*/
+
+/*
+  #include <compare>  // std::strong_ordering
+  #include <concepts> // std::same_as
+
+  template <typename T>
+  class Type {
+  public:
+    [[nodiscard]] 
+    virtual std::strong_ordering operator<=>(const Type&) const 
+    requires(!std::same_as<T, bool>) = default;
+  };
+
+  // when compiler sees Type class it will write a class that
+  // exactly like below(compiler_Type class)
+
+  template <typename T>
+  class compiler_Type {
+  public:
+    [[nodiscard]]
+    virtual std::strong_ordering operator<=>(const compiler_Type&) const 
+    requires(!std::same_as<T, bool>) = default;
+
+    [[nodiscard]]
+    virtual bool operator==(const compiler_Type&) const
+    requires(!std::same_as<T, bool>) = default;
+  };
+*/
+
+/*
+  #include <compare>  // std::strong_ordering
+
+  class Date {
+  public:
+    std::strong_ordering operator<=>(const Date& other) const noexcept
+    {
+      if (auto cmp = m_year <=> other.m_year; cmp != 0)
+        return cmp;
+
+      if (auto cmp = m_month <=> other.m_month; cmp != 0)
+        return cmp;
+
+      return m_day <=> other.m_day;
+    }
+  private:
+    int m_year, m_month, m_day;
+  };
+
+  // comparison functions of int data members are noexcept
+*/
+
+/*
+  - default comparison of containers was done with 
+    lexicographical comparison
+*/
+
+/*
+  #include <vector>
+  #include <list>
+  #include <algorithm>  
+    // std::lexicographical_compare
+    // std::lexicographical_compare_three_way (C++20)
+  #include <compare>   
+    // std::strong_ordering
+
+  std::ostream& operator<<(std::ostream& os, std::strong_ordering s_o)
+  {
+    return  os << ( s_o == 0  ? "equal" :
+                    s_o < 0   ? "less"  : "greater");
+  }
+
+  int main()
+  {
+    using namespace std;
+    boolalpha(cout);
+
+    // --------------------------------------------------------
+
+    vector<int> v1(100'000, 5);
+    vector<int> v2{6, 9};
+
+    cout << (v2 > v1) << '\n';  // output -> true
+    // v2's first element(6) is greater than v1's first element(5)
+
+    // --------------------------------------------------------
+
+    list l1 = { 3, 6, 7, 9, 1 };
+    vector v3 = { 3, 6, 9, 1 };
+
+    auto b1 = lexicographical_compare(l1.begin(), l1.end(), 
+                                      v3.begin(), v3.end());
+    // auto b1 = l1 < v3;
+    // default predicate argument  is std::less
+
+    cout << b1 << '\n';  // output -> true
+    // l1's third element(7) is less than v3's third element(9)
+
+    // --------------------------------------------------------
+    
+    list l2 = { 3, 6, 7, 9, 8 };
+    vector v4 = { 3, 6, 7, 9, 2 };
+
+    auto result = 
+      lexicographical_compare_three_way(l2.begin(), l2.end(), 
+                                        v4.begin(), v4.end());
+    // result's data type is std::strong_ordering
+
+    cout << result << '\n';  // output -> greater  
+    
+    // --------------------------------------------------------
+  }
 */
