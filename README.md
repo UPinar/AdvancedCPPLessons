@@ -64,3 +64,12 @@
 ### [Three-way comparison(spaceship) operator (C++20)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/spaceship_operator)
 
 ### [Lambda expressions](https://github.com/UPinar/AdvancedCPPLessons/tree/main/lambda_expressions)
+  - lambda expressions
+  - lambda idioms
+    - positive lambda idiom
+    - immediately invoked funtion expression
+    - overload resolution idiom
+  - lambda expressions and C++20
+    - default ctor and copy assignment of stateless lambda expression
+    - lambda expression inside unevaluated context
+    - familiar template syntax
