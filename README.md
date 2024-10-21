@@ -73,3 +73,5 @@
     - default ctor and copy assignment of stateless lambda expression
     - lambda expression inside unevaluated context
     - familiar template syntax
+
+### [`<format>` module (C++20)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/format_module)
