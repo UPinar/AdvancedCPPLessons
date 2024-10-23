@@ -75,3 +75,5 @@
     - familiar template syntax
 
 ### [`<format>` module (C++20)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/format_module)
+
+### [Aggregate](https://github.com/UPinar/AdvancedCPPLessons/tree/main/aggregate)

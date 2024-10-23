@@ -1032,3 +1032,252 @@
     // output -> {11 - 22} - (11 - 22)
   }
 */
+
+/*
+  #include <format>
+
+  class Mint {
+  public:
+    Mint() = default;
+    explicit Mint(int x) : m_x{ x } {}
+    int get() const { return m_x; }
+
+  private:
+    int m_x{};
+  };
+
+  template <>
+  class std::formatter<Mint> {
+  public:
+    // when no formatting is provided "{}"
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+      auto iter = ctx.begin();
+      return iter;
+      // "{}"     --> ctx.begin will return '}' character's position
+      // "{}"     --> ctx.end will return '}' character's position
+    }
+
+    auto format(const Mint& m, std::format_context& ctx) const
+    {
+      return std::format_to(ctx.out(), "{}", m.get());
+    }
+  };
+
+  int main()
+  {
+    Mint m1{ 123 };
+
+    std::cout << std::format("|{}|", m1); // output -> |123|
+  }
+*/
+
+/*
+  #include <format>
+
+  class Mint {
+  public:
+    Mint() = default;
+    explicit Mint(int x) : m_x{ x } {}
+    int get() const { return m_x; }
+
+  private:
+    int m_x{};
+  };
+
+  template <>
+  class std::formatter<Mint> {
+  public:
+    // when formatting is provided "{:12}"
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+      auto iter = ctx.begin();
+
+      while (iter != ctx.end() && *iter != '}')
+      {
+        if(*iter < '0' || *iter > '9')
+          throw std::format_error("Invalid width character");
+
+        m_width = m_width * 10 + *iter - '0';
+        ++iter;
+      }
+
+      return iter;
+
+      // "{:12}"  --> ctx.begin will return '1' character's position
+    }
+
+    auto format(const Mint& m, std::format_context& ctx) const
+    {
+      return std::format_to(ctx.out(), "{:{}}", m.get(), m_width);
+    }
+
+  private:
+    int m_width{};
+  };
+
+  int main()
+  {
+    Mint m1{ 123 };
+
+    std::cout << std::format("|{:15}|", m1); 
+    // output -> |            123|
+  }
+*/
+
+/*
+  // -------------------- FIRST WAY --------------------
+
+  #include <format>
+
+  class Mint {
+  public:
+    Mint() = default;
+    explicit Mint(int x) : m_x{ x } {}
+    int get() const { return m_x; }
+
+  private:
+    int m_x{};
+  };
+
+  template <>
+  class std::formatter<Mint> {
+  public:
+    // when formatting is provided "{:12}"
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+      return m_int_f.parse(ctx);
+    }
+
+    auto format(const Mint& m, std::format_context& ctx) const
+    {
+      return m_int_f.format(m.get(), ctx);
+    }
+  private:
+    std::formatter<int> m_int_f;
+    // using std::formatter's int specialization to
+    // format Mint objects
+  };
+
+  // [[fill]align] [sign][#][0][width][.precision][type]
+
+  int main()
+  {
+    Mint m1{ 123 };
+
+    std::cout << std::format("|{0:_>15}| |{0:_<15}|\n", m1); 
+    // output -> |____________123| |123____________|
+  }
+*/
+
+/*
+  // -------------------- SECOND WAY --------------------
+
+  #include <format>
+
+  class Mint {
+  public:
+    Mint() = default;
+    explicit Mint(int x) : m_x{ x } {}
+    int get() const { return m_x; }
+
+  private:
+    int m_x{};
+  };
+
+  // std::formatter<Mint> is public inherited from std::formatter<int>
+  template <>
+  struct std::formatter<Mint> : std::formatter<int> {
+  public:
+    // parse member function is not need to be written
+    auto format(const Mint& m, std::format_context& ctx) const
+    {
+      return std::formatter<int>::format(m.get(), ctx);
+    }
+  };
+
+  // [[fill]align] [sign][#][0][width][.precision][type]
+
+  int main()
+  {
+    Mint m1{ 345 };
+
+    std::cout << std::format("|{0:_>15}| |{0:_<15}|\n", m1); 
+    // output -> |____________345| |345____________|
+  }
+*/
+
+/*
+  #include <string>
+  #include <format>
+
+  enum class Fruit { Apple, Orange, Pear };
+
+  template <>
+  class std::formatter<Fruit> : public std::formatter<std::string> {
+  public:
+    auto format(const Fruit& fruit, std::format_context& ctx) const
+    {
+      std::string str;
+
+      switch(fruit)
+      {
+        using enum Fruit;
+
+        case Apple:   str  = "Apple"; break;
+        case Orange:  str  = "Orange"; break;
+        case Pear:    str  = "Pear"; break;
+      }
+      return std::formatter<std::string>::format(str, ctx);
+    }
+  };
+
+  int main() 
+  {
+    Fruit f1 = Fruit::Apple;
+    Fruit f2 = Fruit::Orange;
+
+    std::cout << std::format("|{:_<16}|\n", f1);
+    // output -> |Apple___________|
+
+    std::cout << std::format("|{:.>24}|\n", f2);
+    // output -> |..................Orange|
+  }
+*/
+
+/*
+  #include <format>
+
+  int main()
+  {
+    using namespace std;
+
+    const char* p = "|{:<12}|";
+    int x = 234;
+
+    cout << format(p, x);   // syntax error
+    //  error: the value of 'p' is not usable in a constant expression
+  }
+*/
+
+/*
+  // runtime formatting
+
+  #include <format>
+
+  int main()
+  {
+    char str_arr[20] = "";
+
+    std::cout << "write format line : ";
+    std::cin >> str_arr;  
+
+    int x = 465;
+
+    auto s = std::vformat(str_arr, std::make_format_args(x));
+    std::cout << s << '\n';
+
+    // input -> write format line : |{:_>20}|
+    // output -> |_________________465|
+  }
+*/
