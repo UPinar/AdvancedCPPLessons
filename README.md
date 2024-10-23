@@ -75,5 +75,9 @@
     - familiar template syntax
 
 ### [`<format>` module (C++20)](https://github.com/UPinar/AdvancedCPPLessons/tree/main/format_module)
+  - `std::format`
+  - formatting user defined types 
 
 ### [Aggregate](https://github.com/UPinar/AdvancedCPPLessons/tree/main/aggregate)
+  - aggregate types
+  - designated initializer for aggregate types

@@ -897,3 +897,139 @@
   }
 */
 
+/*
+  int foo();
+
+  int main()
+  {
+    int& r = foo(); // syntax error
+    //  error: cannot bind non-const lvalue reference of type 'int&' 
+    // to an rvalue of type 'int'
+    // "foo()" is a PRValue expression(R).
+
+    const int& cr = foo(); // VALID
+    int&& rr = foo();      // VALID
+    // both lines cause LIFE EXTENSION.
+
+    // const l value reference can bind to r value expression.
+    // r value reference can bind to r value expression.
+  }
+*/
+
+/*
+  struct Mystruct {
+    int m_x, m_y;
+    const int& m_cref;
+    int&& m_rref;
+  };
+
+  int foo();
+  int bar();
+
+  int main()
+  {
+    // --------------------------------------------------
+
+    Mystruct m1 = { 3, 5, foo(), bar() }; // aggregate initialization
+    // LIFE EXTENSION for foo() and bar() function's return value.
+
+    m1.m_cref; // VALID
+    m1.m_rref; // VALID
+
+    // --------------------------------------------------
+
+    Mystruct m2(3, 5, foo(), bar());      // direct initialization
+    // LIFE EXTENSION is not applied in direct initialization.
+
+    m2.m_cref; // undefined behavior(UB)
+    m2.m_rref; // undefined behavior(UB)
+
+    // --------------------------------------------------
+  }
+*/
+
+/*
+  struct Mystruct {
+    int m_x, m_y;
+    
+    struct NestedStruct {
+      int m_nx, m_ny, m_nz;
+    } m_z;
+  };
+
+  int main()
+  {
+    // --------------------------------------------------
+
+    Mystruct m1 = { 11, 22, { 333, 444, 555 } };  // aggregate init
+    Mystruct m2 = { 11, 22, 333, 444, 555 };      // aggregate init
+    // Those 2 lines are equivalent.
+
+    // --------------------------------------------------
+
+    Mystruct m3 = { 11, 22, (333, 444, 555) };
+    // "(333, 444, 555)" is an expression and its value is 555.
+
+    std::cout << m3.m_z.m_nx << '\n';   // output -> 555
+    std::cout << m3.m_z.m_ny << '\n';   // output -> 0
+    std::cout << m3.m_z.m_nz << '\n';   // output -> 0
+
+    // --------------------------------------------------
+
+    Mystruct m4(1, 2, { 11, 22, 33 });    // VALID
+
+    // --------------------------------------------------
+
+    Mystruct m5(1, 2, (11, 22, 33));      // syntax error
+    // error: could not convert '((void)0, 33)' from 'int' 
+    // to 'Mystruct::NestedStruct'
+
+    // --------------------------------------------------
+
+    Mystruct m6(1, 2, 11, 22, 33);        // syntax error
+    // error: could not convert '11' from 'int' 
+    // to 'Mystruct::NestedStruct'
+
+    // --------------------------------------------------
+  }
+*/
+
+/*
+  struct Mystruct {
+    int m_x, m_y, m_z;
+  };
+
+  int main()
+  {
+    // --------------------------------------------------
+
+    Mystruct m1{ 11, 22, 33 };  // aggregate initialization
+    // VALID C++17 and C++20
+
+    Mystruct m2(1, 2, 3);       // direct initialization
+    // syntax error C++17
+    // VALID C++20
+
+    // --------------------------------------------------
+
+    Mystruct m3{ 11, 22.2, 33 };
+    // syntax error (narrowing conversion)
+
+    Mystruct m4(11, 22.2, 33);
+    // VALID but narrowing conversion WARNING
+
+    // --------------------------------------------------
+
+    Mystruct m5{ .m_x = 11 }; 
+    // syntax error C++17
+    // VALID C++20
+
+    Mystruct m6( .m_x = 11 );
+    // syntax error C++17
+    // syntax error C++20
+
+    // --------------------------------------------------
+  }
+*/
+
+// Lesson_16 00:33:00 
